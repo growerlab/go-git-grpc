@@ -1,0 +1,208 @@
+syntax = "proto3";
+
+option go_package = "github.com/growerlab/go-git-grpc/pb";
+
+package pb;
+
+service Storer {
+  // NewEncodedObject
+  rpc NewEncodedObject(None) returns (EncodedObject) {}
+  rpc SetEncodedObjectType(Int8) returns (Int8) {}
+  rpc SetEncodedObjectSetSize(Int64) returns (None) {}
+  rpc EncodedObjectReader(None) returns (stream Bytes) {}
+  rpc EncodedObjectWriter(stream Bytes) returns (stream Int64) {}
+
+  // ReferenceStorer
+  rpc SetReference(Reference) returns (None) {}
+  rpc CheckAndSetReference(SetReferenceParams) returns (None) {}
+  rpc GetReference(ReferenceName) returns (Reference) {}
+  rpc GetReferences(None) returns (References) {}
+  rpc RemoveReference(ReferenceName) returns (None) {}
+  rpc CountLooseRefs(None) returns (Int64) {}
+  rpc PackRefs(None) returns (None) {}
+
+  // ShallowStorer
+  rpc SetShallow(Hashs) returns (None) {}
+  rpc Shallow(None) returns (Hashs) {}
+
+  // IndexStorer
+  rpc SetIndex(Index) returns (None) {}
+  rpc GetIndex(None) returns (Index) {}
+
+  // ConfigStorer
+  rpc GetConfig(None) returns (Config) {}
+  rpc SetConfig(Config) returns (None) {}
+
+  // ModuleStorer
+  rpc Modules(None) returns (ModuleNames) {}
+}
+
+message None {}
+
+message Int8 {
+  bytes Value = 1;
+}
+
+message Int64 {
+  int64 Value = 1;
+}
+
+message Bytes {
+  bytes Value = 1;
+}
+
+message ModuleNames {
+  repeated string Names = 1;
+}
+
+message ModuleName {
+  string Name = 1;
+}
+
+message Config {
+  message Core {
+    bool IsBare = 1;
+    string Worktree = 2;
+    string CommentChar = 3;
+  }
+  message User {
+    string Name = 1;
+    string Email = 2;
+  }
+  message Author {
+    string Name = 1;
+    string Email = 2;
+  }
+  message Committer {
+    string Name = 1;
+    string Email = 2;
+  }
+  message Pack {
+    uint64 Window = 1;
+  }
+  repeated MapRemotes Remotes = 1;
+  repeated MapSubmodule Submodules = 2;
+  repeated MapBranch Branches = 3;
+  Config Raw = 4;
+}
+
+message MapBranch {
+  string key = 1;
+  Branch branch = 2;
+}
+
+message Branch {
+  string Name = 1;
+  string Remote = 2;
+  string Merge = 3;
+  string Rebase = 4;
+  Subsection raw = 5;
+}
+
+message MapSubmodule {
+  string key = 1;
+  Submodule sub = 2;
+}
+
+message Submodule {
+  string Name = 1;
+  string Path = 2;
+  string URL = 3;
+  string Branch = 4;
+  Subsection raw = 5;
+}
+
+message MapRemotes {
+  string key = 1;
+  RemoteConfig config = 2;
+}
+
+message RemoteConfig {
+  string Name = 1;
+  repeated string URLs = 2;
+  repeated string Fetch = 3;
+  Subsection raw = 4;
+}
+
+message Subsection {
+  string Name = 1;
+  repeated MapFieldEntry Options = 2;
+}
+
+message ReferenceName {
+  string Name = 1;
+}
+
+message Index {
+  uint32 Version = 1;
+  repeated Entry Entries = 2;
+  Tree Cache = 3;
+}
+
+message ResolveUndo {
+  repeated ResolveUndoEntry Entries = 1;
+}
+
+message ResolveUndoEntry {
+  string Path = 1;
+  repeated MapFieldEntry Entries = 2;
+}
+
+message MapFieldEntry {
+  int64 key = 1;
+  string value = 2;
+}
+
+message Tree {
+   repeated TreeEntry Entries = 1;
+}
+
+message TreeEntry {
+  string Path = 1;
+  int64 Entries = 2;
+  int64 Trees = 3;
+  string Hash = 4;
+}
+
+message Entry {
+  string Hash = 1;
+  string Name = 2;
+  int64 CreatedAt = 3;
+  int64 ModifiedAt = 4;
+  uint32 Dev = 5;
+  uint32 Inode = 6;
+  uint32 Mode = 7;
+  uint32 UID = 8;
+  uint32 GID = 9;
+  uint32 Size = 10;
+  int64 Stage = 11;
+  bool SkipWorktree = 12;
+  bool IntentToAdd = 13;
+}
+
+message Hashs {
+  repeated string Hash = 1;
+}
+
+// EncodedObject.Hash
+message EncodedObject {
+  string Hash = 1;
+  bytes Type = 2; // uint8
+  int64 Size = 3;
+}
+
+message Reference {
+  bytes T = 1;
+  string N = 2;
+  string H = 3;
+  string Target = 4;
+}
+
+message References {
+  repeated Reference refs = 1;
+}
+
+message SetReferenceParams {
+    Reference new = 1;
+    Reference old = 2;
+}

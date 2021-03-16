@@ -17,13 +17,7 @@ func New(address string) error {
 
 	s := grpc.NewServer()
 
-	store := &Storer{
-		EncodedObjectStorer: &EncodedObjectStorer{},
-		ReferenceStorer:     &ReferenceStorer{},
-		ShallowStorer:       &ShallowStorer{},
-		IndexStorer:         &IndexStorer{},
-		ConfigStorer:        &ConfigStorer{},
-	}
+	store := &Storer{}
 
 	pb.RegisterStorerServer(s, store)
 	if err := s.Serve(lis); err != nil {

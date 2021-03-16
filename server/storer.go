@@ -6,10 +6,10 @@ import (
 	"github.com/growerlab/go-git-grpc/pb"
 )
 
-var _ pb.StorerServer = (*Storer)(nil)
+var _ pb.StorerServer = &Storer{}
 
 type Storer struct {
-	pb.UnimplementedStorerServer
+	*pb.UnimplementedStorerServer
 	*EncodedObjectStorer
 	*ReferenceStorer
 	*ShallowStorer

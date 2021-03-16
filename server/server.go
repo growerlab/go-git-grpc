@@ -3,10 +3,10 @@ package server
 import (
 	"net"
 
+	"github.com/growerlab/go-git-grpc/pb"
+
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
-
-	"github.com/growerlab/go-git-grpc/pb"
 )
 
 func New(address string) error {

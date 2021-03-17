@@ -9,14 +9,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-func New(address string) error {
+func New(root, address string) error {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		return errors.Errorf("failed to listen: %v", err)
 	}
 
 	s := grpc.NewServer()
-
 	store := &Storer{}
 
 	pb.RegisterStorerServer(s, store)

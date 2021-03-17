@@ -37,18 +37,23 @@ service Storer {
   rpc Modules(None) returns (ModuleNames) {}
 }
 
-message None {}
+message None {
+  string RepoPath = 1;
+}
 
 message Int8 {
-  bytes Value = 1;
+  string RepoPath = 1;
+  bytes Value = 2;
 }
 
 message Int64 {
-  int64 Value = 1;
+  string RepoPath = 1;
+  int64 Value = 2;
 }
 
 message Bytes {
-  bytes Value = 1;
+  string RepoPath = 1;
+  bytes Value = 2;
 }
 
 message ModuleNames {
@@ -60,6 +65,7 @@ message ModuleName {
 }
 
 message Config {
+  string RepoPath = 1;
   message Core {
     bool IsBare = 1;
     string Worktree = 2;
@@ -80,10 +86,10 @@ message Config {
   message Pack {
     uint64 Window = 1;
   }
-  repeated MapRemotes Remotes = 1;
-  repeated MapSubmodule Submodules = 2;
-  repeated MapBranch Branches = 3;
-  Config Raw = 4;
+  repeated MapRemotes Remotes = 2;
+  repeated MapSubmodule Submodules = 3;
+  repeated MapBranch Branches = 4;
+  Config Raw = 5;
 }
 
 message MapBranch {
@@ -106,7 +112,7 @@ message MapSubmodule {
 
 message Submodule {
   string Name = 1;
-  string Path = 2;
+  string RepoPath = 2;
   string URL = 3;
   string Branch = 4;
   Subsection raw = 5;
@@ -130,13 +136,15 @@ message Subsection {
 }
 
 message ReferenceName {
-  string Name = 1;
+  string RepoPath = 1;
+  string Name = 2;
 }
 
 message Index {
-  uint32 Version = 1;
-  repeated Entry Entries = 2;
-  Tree Cache = 3;
+  string RepoPath = 1;
+  uint32 Version = 2;
+  repeated Entry Entries = 3;
+  Tree Cache = 4;
 }
 
 message ResolveUndo {
@@ -144,7 +152,7 @@ message ResolveUndo {
 }
 
 message ResolveUndoEntry {
-  string Path = 1;
+  string RepoPath = 1;
   repeated MapFieldEntry Entries = 2;
 }
 
@@ -158,7 +166,7 @@ message Tree {
 }
 
 message TreeEntry {
-  string Path = 1;
+  string RepoPath = 1;
   int64 Entries = 2;
   int64 Trees = 3;
   string Hash = 4;
@@ -181,7 +189,8 @@ message Entry {
 }
 
 message Hashs {
-  repeated string Hash = 1;
+  string RepoPath = 1;
+  repeated string Hash = 2;
 }
 
 // EncodedObject.Hash
@@ -192,10 +201,11 @@ message EncodedObject {
 }
 
 message Reference {
-  bytes T = 1;
-  string N = 2;
-  string H = 3;
-  string Target = 4;
+  string RepoPath = 1;
+  bytes T = 2;
+  string N = 3;
+  string H = 4;
+  string Target = 5;
 }
 
 message References {
@@ -203,6 +213,7 @@ message References {
 }
 
 message SetReferenceParams {
-    Reference new = 1;
-    Reference old = 2;
+  string RepoPath = 1;
+  Reference new = 2;
+  Reference old = 3;
 }

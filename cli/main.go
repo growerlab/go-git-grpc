@@ -8,6 +8,6 @@ import (
 func main() {
 	git.Open(nil, nil)
 
-	server.New(":8081")
+	server.New("./", ":8081")
 
 }

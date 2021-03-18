@@ -3,6 +3,9 @@ package server
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
+	"github.com/go-git/go-git/v5"
 	"github.com/growerlab/go-git-grpc/pb"
 )
 
@@ -10,10 +13,24 @@ var _ pb.StorerServer = &Storer{}
 
 type Storer struct {
 	*pb.UnimplementedStorerServer
+
+	root string // 仓库根目录
 }
 
 func (s *Storer) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.EncodedObject, error) {
-	panic("implement me")
+	var result *pb.EncodedObject
+	var err error
+	err = repo(s.root, none.RepoPath, func(r *git.Repository) {
+		obj := r.Storer.NewEncodedObject()
+		result = new(pb.EncodedObject)
+		result.Type = obj.Type().String()
+		result.Size = obj.Size()
+		result.Hash = obj.Hash().String()
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return result, nil
 }
 
 func (s *Storer) SetEncodedObjectType(ctx context.Context, i *pb.Int8) (*pb.Int8, error) {

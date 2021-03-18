@@ -16,7 +16,9 @@ func New(root, address string) error {
 	}
 
 	s := grpc.NewServer()
-	store := &Storer{}
+	store := &Storer{
+		root: root,
+	}
 
 	pb.RegisterStorerServer(s, store)
 	if err := s.Serve(lis); err != nil {

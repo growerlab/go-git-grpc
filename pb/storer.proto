@@ -196,7 +196,7 @@ message Hashs {
 // EncodedObject.Hash
 message EncodedObject {
   string Hash = 1;
-  bytes Type = 2; // uint8
+  string Type = 2;
   int64 Size = 3;
 }
 

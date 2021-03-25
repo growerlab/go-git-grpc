@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type StorerClient interface {
 	// NewEncodedObject
 	NewEncodedObject(ctx context.Context, in *None, opts ...grpc.CallOption) (*EncodedObject, error)
-	SetEncodedObjectType(ctx context.Context, in *Int8, opts ...grpc.CallOption) (*Int8, error)
+	SetEncodedObjectType(ctx context.Context, in *Int8, opts ...grpc.CallOption) (*None, error)
 	SetEncodedObjectSetSize(ctx context.Context, in *Int64, opts ...grpc.CallOption) (*None, error)
 	EncodedObjectReader(ctx context.Context, in *None, opts ...grpc.CallOption) (Storer_EncodedObjectReaderClient, error)
 	EncodedObjectWriter(ctx context.Context, opts ...grpc.CallOption) (Storer_EncodedObjectWriterClient, error)
@@ -62,8 +62,8 @@ func (c *storerClient) NewEncodedObject(ctx context.Context, in *None, opts ...g
 	return out, nil
 }
 
-func (c *storerClient) SetEncodedObjectType(ctx context.Context, in *Int8, opts ...grpc.CallOption) (*Int8, error) {
-	out := new(Int8)
+func (c *storerClient) SetEncodedObjectType(ctx context.Context, in *Int8, opts ...grpc.CallOption) (*None, error) {
+	out := new(None)
 	err := c.cc.Invoke(ctx, "/pb.Storer/SetEncodedObjectType", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -275,7 +275,7 @@ func (c *storerClient) Modules(ctx context.Context, in *None, opts ...grpc.CallO
 type StorerServer interface {
 	// NewEncodedObject
 	NewEncodedObject(context.Context, *None) (*EncodedObject, error)
-	SetEncodedObjectType(context.Context, *Int8) (*Int8, error)
+	SetEncodedObjectType(context.Context, *Int8) (*None, error)
 	SetEncodedObjectSetSize(context.Context, *Int64) (*None, error)
 	EncodedObjectReader(*None, Storer_EncodedObjectReaderServer) error
 	EncodedObjectWriter(Storer_EncodedObjectWriterServer) error
@@ -308,7 +308,7 @@ type UnimplementedStorerServer struct {
 func (UnimplementedStorerServer) NewEncodedObject(context.Context, *None) (*EncodedObject, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NewEncodedObject not implemented")
 }
-func (UnimplementedStorerServer) SetEncodedObjectType(context.Context, *Int8) (*Int8, error) {
+func (UnimplementedStorerServer) SetEncodedObjectType(context.Context, *Int8) (*None, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetEncodedObjectType not implemented")
 }
 func (UnimplementedStorerServer) SetEncodedObjectSetSize(context.Context, *Int64) (*None, error) {

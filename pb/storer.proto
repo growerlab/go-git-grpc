@@ -7,7 +7,7 @@ package pb;
 service Storer {
   // NewEncodedObject
   rpc NewEncodedObject(None) returns (EncodedObject) {}
-  rpc SetEncodedObjectType(Int8) returns (Int8) {}
+  rpc SetEncodedObjectType(Int8) returns (None) {}
   rpc SetEncodedObjectSetSize(Int64) returns (None) {}
   rpc EncodedObjectReader(None) returns (stream Bytes) {}
   rpc EncodedObjectWriter(stream Bytes) returns (stream Int64) {}

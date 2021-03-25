@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 
+	"github.com/go-git/go-git/v5/plumbing"
+
 	"github.com/pkg/errors"
 
 	"github.com/go-git/go-git/v5"
@@ -19,8 +21,7 @@ type Storer struct {
 
 func (s *Storer) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.EncodedObject, error) {
 	var result *pb.EncodedObject
-	var err error
-	err = repo(s.root, none.RepoPath, func(r *git.Repository) {
+	err := repo(s.root, none.RepoPath, func(r *git.Repository) {
 		obj := r.Storer.NewEncodedObject()
 		result = new(pb.EncodedObject)
 		result.Type = obj.Type().String()
@@ -33,12 +34,33 @@ func (s *Storer) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.Encod
 	return result, nil
 }
 
-func (s *Storer) SetEncodedObjectType(ctx context.Context, i *pb.Int8) (*pb.Int8, error) {
-	panic("implement me")
+func (s *Storer) SetEncodedObjectType(ctx context.Context, i *pb.Int8) (*pb.None, error) {
+	var result = &pb.None{RepoPath: i.RepoPath}
+	var encodedObjectType plumbing.ObjectType
+
+	if len(i.Value) > 0 {
+		encodedObjectType = plumbing.ObjectType(i.Value[0])
+	}
+
+	err := repo(s.root, i.RepoPath, func(r *git.Repository) {
+		r.Storer.NewEncodedObject().SetType(encodedObjectType)
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return result, nil
 }
 
 func (s *Storer) SetEncodedObjectSetSize(ctx context.Context, i *pb.Int64) (*pb.None, error) {
-	panic("implement me")
+	var result = &pb.None{RepoPath: i.RepoPath}
+
+	err := repo(s.root, i.RepoPath, func(r *git.Repository) {
+		r.Storer.NewEncodedObject().SetSize(i.Value)
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return result, nil
 }
 
 func (s *Storer) EncodedObjectReader(none *pb.None, server pb.Storer_EncodedObjectReaderServer) error {

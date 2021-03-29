@@ -145,6 +145,13 @@ message Index {
   uint32 Version = 2;
   repeated Entry Entries = 3;
   Tree Cache = 4;
+  ResolveUndo ResolveUndo = 5;
+  EndOfIndexEntry EndOfIndexEntry = 6;
+}
+
+message EndOfIndexEntry {
+  uint32 Offset = 1;
+  string Hash = 2;
 }
 
 message ResolveUndo {
@@ -152,8 +159,8 @@ message ResolveUndo {
 }
 
 message ResolveUndoEntry {
-  string RepoPath = 1;
-  repeated MapFieldEntry Entries = 2;
+  string Path = 1;
+  repeated MapFieldEntry Stages = 2;
 }
 
 message MapFieldEntry {
@@ -166,7 +173,7 @@ message Tree {
 }
 
 message TreeEntry {
-  string RepoPath = 1;
+  string Path = 1;
   int64 Entries = 2;
   int64 Trees = 3;
   string Hash = 4;

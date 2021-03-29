@@ -3,6 +3,11 @@ package server
 import (
 	"context"
 	"io"
+	"time"
+
+	"github.com/go-git/go-git/v5/plumbing/filemode"
+
+	"github.com/go-git/go-git/v5/plumbing/format/index"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -176,27 +181,144 @@ func (s *Storer) GetReferences(ctx context.Context, none *pb.None) (*pb.Referenc
 }
 
 func (s *Storer) RemoveReference(ctx context.Context, name *pb.ReferenceName) (*pb.None, error) {
-	panic("implement me")
+	err := repo(s.root, name.RepoPath, func(r *git.Repository) error {
+		rn := plumbing.ReferenceName(name.Name)
+		err := r.Storer.RemoveReference(rn)
+		return errors.WithStack(err)
+	})
+	return &pb.None{}, err
 }
 
 func (s *Storer) CountLooseRefs(ctx context.Context, none *pb.None) (*pb.Int64, error) {
-	panic("implement me")
+	var result = new(pb.Int64)
+	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
+		count, err := r.Storer.CountLooseRefs()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		result.Value = int64(count)
+		return nil
+	})
+	return result, err
 }
 
 func (s *Storer) PackRefs(ctx context.Context, none *pb.None) (*pb.None, error) {
-	panic("implement me")
+	var result = new(pb.None)
+	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
+		return errors.WithStack(r.Storer.PackRefs())
+	})
+	return result, err
 }
 
 func (s *Storer) SetShallow(ctx context.Context, hashs *pb.Hashs) (*pb.None, error) {
-	panic("implement me")
+	var result = new(pb.None)
+	err := repo(s.root, hashs.RepoPath, func(r *git.Repository) error {
+		commits := make([]plumbing.Hash, len(hashs.Hash))
+		for i := range hashs.Hash {
+			commits[i] = plumbing.NewHash(hashs.Hash[i])
+		}
+		err := r.Storer.SetShallow(commits)
+		return errors.WithStack(err)
+	})
+	return result, err
 }
 
 func (s *Storer) Shallow(ctx context.Context, none *pb.None) (*pb.Hashs, error) {
-	panic("implement me")
+	var result = new(pb.Hashs)
+	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
+		commits, err := r.Storer.Shallow()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		for _, cmt := range commits {
+			result.Hash = append(result.Hash, cmt.String())
+		}
+		return nil
+	})
+	return result, err
 }
 
-func (s *Storer) SetIndex(ctx context.Context, index *pb.Index) (*pb.None, error) {
-	panic("implement me")
+func (s *Storer) SetIndex(ctx context.Context, idx *pb.Index) (*pb.None, error) {
+	var result = new(pb.None)
+	err := repo(s.root, idx.RepoPath, func(r *git.Repository) error {
+		var entries []*index.Entry
+		var cache *index.Tree
+		var trees []index.TreeEntry
+		var resolveUndo *index.ResolveUndo
+		var resolveUndoEntries []index.ResolveUndoEntry
+		var endOfIndexEntry *index.EndOfIndexEntry
+
+		if len(idx.Entries) > 0 {
+			entries = make([]*index.Entry, 0, len(idx.Entries))
+			for _, ent := range idx.Entries {
+				entries = append(entries, &index.Entry{
+					Hash:         plumbing.NewHash(ent.Hash),
+					Name:         ent.Name,
+					CreatedAt:    time.Unix(ent.CreatedAt, 0),
+					ModifiedAt:   time.Unix(ent.ModifiedAt, 0),
+					Dev:          ent.Dev,
+					Inode:        ent.Inode,
+					Mode:         filemode.FileMode(ent.Mode),
+					UID:          ent.UID,
+					GID:          ent.GID,
+					Size:         ent.Size,
+					Stage:        index.Stage(ent.Stage),
+					SkipWorktree: ent.SkipWorktree,
+					IntentToAdd:  ent.IntentToAdd,
+				})
+			}
+		}
+
+		if idx.Cache != nil && len(idx.Cache.Entries) > 0 {
+			trees = make([]index.TreeEntry, 0, len(idx.Cache.Entries))
+			for _, ent := range idx.Cache.Entries {
+				trees = append(trees, index.TreeEntry{
+					Path:    ent.Path,
+					Entries: int(ent.Entries),
+					Trees:   int(ent.Trees),
+					Hash:    plumbing.NewHash(ent.Hash),
+				})
+			}
+		}
+		if trees != nil {
+			cache = &index.Tree{
+				Entries: trees,
+			}
+		}
+
+		if idx.ResolveUndo != nil {
+			for _, ent := range idx.ResolveUndo.Entries {
+				stageSet := make(map[index.Stage]plumbing.Hash)
+				for _, stg := range ent.Stages {
+					stageSet[index.Stage(stg.Key)] = plumbing.NewHash(stg.Value)
+				}
+				resolveUndoEntries = append(resolveUndoEntries, index.ResolveUndoEntry{
+					Path:   ent.Path,
+					Stages: stageSet,
+				})
+			}
+		}
+		if len(resolveUndoEntries) > 0 {
+			resolveUndo = &index.ResolveUndo{Entries: resolveUndoEntries}
+		}
+		if idx.EndOfIndexEntry != nil {
+			endOfIndexEntry = &index.EndOfIndexEntry{
+				Offset: idx.EndOfIndexEntry.Offset,
+				Hash:   plumbing.NewHash(idx.EndOfIndexEntry.Hash),
+			}
+		}
+
+		newIdx := &index.Index{
+			Version:         idx.Version,
+			Entries:         entries,
+			Cache:           cache,
+			ResolveUndo:     resolveUndo,
+			EndOfIndexEntry: endOfIndexEntry,
+		}
+		err := r.Storer.SetIndex(newIdx)
+		return errors.WithStack(err)
+	})
+	return result, err
 }
 
 func (s *Storer) GetIndex(ctx context.Context, none *pb.None) (*pb.Index, error) {

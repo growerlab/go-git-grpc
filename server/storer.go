@@ -3,11 +3,6 @@ package server
 import (
 	"context"
 	"io"
-	"time"
-
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-
-	"github.com/go-git/go-git/v5/plumbing/format/index"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -241,80 +236,7 @@ func (s *Storer) Shallow(ctx context.Context, none *pb.None) (*pb.Hashs, error) 
 func (s *Storer) SetIndex(ctx context.Context, idx *pb.Index) (*pb.None, error) {
 	var result = new(pb.None)
 	err := repo(s.root, idx.RepoPath, func(r *git.Repository) error {
-		var entries []*index.Entry
-		var cache *index.Tree
-		var trees []index.TreeEntry
-		var resolveUndo *index.ResolveUndo
-		var resolveUndoEntries []index.ResolveUndoEntry
-		var endOfIndexEntry *index.EndOfIndexEntry
-
-		if len(idx.Entries) > 0 {
-			entries = make([]*index.Entry, 0, len(idx.Entries))
-			for _, ent := range idx.Entries {
-				entries = append(entries, &index.Entry{
-					Hash:         plumbing.NewHash(ent.Hash),
-					Name:         ent.Name,
-					CreatedAt:    time.Unix(ent.CreatedAt, 0),
-					ModifiedAt:   time.Unix(ent.ModifiedAt, 0),
-					Dev:          ent.Dev,
-					Inode:        ent.Inode,
-					Mode:         filemode.FileMode(ent.Mode),
-					UID:          ent.UID,
-					GID:          ent.GID,
-					Size:         ent.Size,
-					Stage:        index.Stage(ent.Stage),
-					SkipWorktree: ent.SkipWorktree,
-					IntentToAdd:  ent.IntentToAdd,
-				})
-			}
-		}
-
-		if idx.Cache != nil && len(idx.Cache.Entries) > 0 {
-			trees = make([]index.TreeEntry, 0, len(idx.Cache.Entries))
-			for _, ent := range idx.Cache.Entries {
-				trees = append(trees, index.TreeEntry{
-					Path:    ent.Path,
-					Entries: int(ent.Entries),
-					Trees:   int(ent.Trees),
-					Hash:    plumbing.NewHash(ent.Hash),
-				})
-			}
-		}
-		if trees != nil {
-			cache = &index.Tree{
-				Entries: trees,
-			}
-		}
-
-		if idx.ResolveUndo != nil {
-			for _, ent := range idx.ResolveUndo.Entries {
-				stageSet := make(map[index.Stage]plumbing.Hash)
-				for _, stg := range ent.Stages {
-					stageSet[index.Stage(stg.Key)] = plumbing.NewHash(stg.Value)
-				}
-				resolveUndoEntries = append(resolveUndoEntries, index.ResolveUndoEntry{
-					Path:   ent.Path,
-					Stages: stageSet,
-				})
-			}
-		}
-		if len(resolveUndoEntries) > 0 {
-			resolveUndo = &index.ResolveUndo{Entries: resolveUndoEntries}
-		}
-		if idx.EndOfIndexEntry != nil {
-			endOfIndexEntry = &index.EndOfIndexEntry{
-				Offset: idx.EndOfIndexEntry.Offset,
-				Hash:   plumbing.NewHash(idx.EndOfIndexEntry.Hash),
-			}
-		}
-
-		newIdx := &index.Index{
-			Version:         idx.Version,
-			Entries:         entries,
-			Cache:           cache,
-			ResolveUndo:     resolveUndo,
-			EndOfIndexEntry: endOfIndexEntry,
-		}
+		newIdx := buildPbRefToIndex(idx)
 		err := r.Storer.SetIndex(newIdx)
 		return errors.WithStack(err)
 	})
@@ -322,19 +244,54 @@ func (s *Storer) SetIndex(ctx context.Context, idx *pb.Index) (*pb.None, error) 
 }
 
 func (s *Storer) GetIndex(ctx context.Context, none *pb.None) (*pb.Index, error) {
-	panic("implement me")
+	var result *pb.Index
+	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
+		idx, err := r.Storer.Index()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		result = buildIndexToPbRef(idx)
+		return nil
+	})
+	return result, err
 }
 
 func (s *Storer) GetConfig(ctx context.Context, none *pb.None) (*pb.Config, error) {
-	panic("implement me")
+	var result = new(pb.Config)
+	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
+		cfg, err := r.Storer.Config()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		result = buildConfigFromPbConfig(cfg)
+		return nil
+	})
+	return result, err
 }
 
 func (s *Storer) SetConfig(ctx context.Context, c *pb.Config) (*pb.None, error) {
-	panic("implement me")
+	var result = new(pb.None)
+	err := repo(s.root, c.RepoPath, func(r *git.Repository) error {
+		cfg := buildPbConfigFromConfig(c)
+		err := r.Storer.SetConfig(cfg)
+		return errors.WithStack(err)
+	})
+	return result, err
 }
 
 func (s *Storer) Modules(ctx context.Context, none *pb.None) (*pb.ModuleNames, error) {
-	panic("implement me")
+	var result = new(pb.ModuleNames)
+	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
+		cfg, err := r.Storer.Config()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		for _, submd := range cfg.Submodules {
+			result.Names = append(result.Names, submd.Name)
+		}
+		return nil
+	})
+	return result, err
 }
 
 func (s *Storer) mustEmbedUnimplementedStorerServer() {

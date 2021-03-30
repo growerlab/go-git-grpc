@@ -65,31 +65,37 @@ message ModuleName {
 }
 
 message Config {
-  string RepoPath = 1;
-  message Core {
+  message MsgCore {
     bool IsBare = 1;
     string Worktree = 2;
     string CommentChar = 3;
   }
-  message User {
+  message MsgUser {
     string Name = 1;
     string Email = 2;
   }
-  message Author {
+  message MsgAuthor {
     string Name = 1;
     string Email = 2;
   }
-  message Committer {
+  message MsgCommitter {
     string Name = 1;
     string Email = 2;
   }
-  message Pack {
+  message MsgPack {
     uint64 Window = 1;
   }
+
+  string RepoPath = 1;
   repeated MapRemotes Remotes = 2;
   repeated MapSubmodule Submodules = 3;
   repeated MapBranch Branches = 4;
   Config Raw = 5;
+  MsgCore Core = 6;
+  MsgUser User  = 7;
+  MsgAuthor Author = 8;
+  MsgCommitter Committer = 9;
+  MsgPack Pack = 10;
 }
 
 message MapBranch {
@@ -102,7 +108,7 @@ message Branch {
   string Remote = 2;
   string Merge = 3;
   string Rebase = 4;
-  Subsection raw = 5;
+//  Subsection raw = 5;
 }
 
 message MapSubmodule {
@@ -112,10 +118,10 @@ message MapSubmodule {
 
 message Submodule {
   string Name = 1;
-  string RepoPath = 2;
+  string Path = 2;
   string URL = 3;
   string Branch = 4;
-  Subsection raw = 5;
+//  Subsection raw = 5;
 }
 
 message MapRemotes {

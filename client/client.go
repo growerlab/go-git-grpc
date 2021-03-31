@@ -1,23 +1,31 @@
 package client
 
 import (
+	"context"
 	"io"
-	"log"
 
 	"github.com/growerlab/go-git-grpc/pb"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
 
-func New(address string) (*Store, io.Closer) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+func New(ctx context.Context, grpcServerAddr string, repoPath string) (*Store, io.Closer, error) {
+	conn, err := grpc.DialContext(ctx,
+		grpcServerAddr,
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+	)
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		err := errors.WithStack(err)
+		return nil, nil, err
 	}
 
 	c := pb.NewStorerClient(conn)
 	s := &Store{
-		grpcConn:    conn,
-		storeClient: c,
+		repoPath: repoPath,
+		grpcConn: conn,
+		client:   c,
+		ctx:      ctx,
 	}
-	return s, s
+	return s, s, nil
 }

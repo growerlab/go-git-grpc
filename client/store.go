@@ -1,6 +1,9 @@
 package client
 
 import (
+	"context"
+	"log"
+
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
@@ -13,16 +16,28 @@ import (
 var _ storage.Storer = (*Store)(nil)
 
 type Store struct {
-	grpcConn    *grpc.ClientConn
-	storeClient pb.StorerClient
+	repoPath string
+
+	ctx      context.Context
+	grpcConn *grpc.ClientConn
+	client   pb.StorerClient
 }
 
 func (s *Store) Close() error {
-	return s.grpcConn.Close()
+	err := s.grpcConn.Close()
+	return err
 }
 
 func (s *Store) NewEncodedObject() plumbing.EncodedObject {
-	panic("implement me")
+	obj := &EncodedObject{
+		ctx:      s.ctx,
+		repoPath: s.repoPath,
+		client:   s.client,
+	}
+	if err := obj.Init(); err != nil {
+		log.Printf("New encoded object err: %+v\n", err)
+	}
+	return obj
 }
 
 func (s *Store) SetEncodedObject(object plumbing.EncodedObject) (plumbing.Hash, error) {

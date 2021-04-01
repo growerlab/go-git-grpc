@@ -19,7 +19,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type StorerClient interface {
 	// NewEncodedObject
-	NewEncodedObject(ctx context.Context, in *None, opts ...grpc.CallOption) (*EncodedObject, error)
+	// rpc NewEncodedObject(None) returns (EncodedObject) {}
+	SetEncodedObject(ctx context.Context, in *EncodedObject, opts ...grpc.CallOption) (*Hash, error)
 	SetEncodedObjectType(ctx context.Context, in *Int8, opts ...grpc.CallOption) (*None, error)
 	SetEncodedObjectSetSize(ctx context.Context, in *Int64, opts ...grpc.CallOption) (*None, error)
 	EncodedObjectReader(ctx context.Context, in *None, opts ...grpc.CallOption) (Storer_EncodedObjectReaderClient, error)
@@ -53,9 +54,9 @@ func NewStorerClient(cc grpc.ClientConnInterface) StorerClient {
 	return &storerClient{cc}
 }
 
-func (c *storerClient) NewEncodedObject(ctx context.Context, in *None, opts ...grpc.CallOption) (*EncodedObject, error) {
-	out := new(EncodedObject)
-	err := c.cc.Invoke(ctx, "/pb.Storer/NewEncodedObject", in, out, opts...)
+func (c *storerClient) SetEncodedObject(ctx context.Context, in *EncodedObject, opts ...grpc.CallOption) (*Hash, error) {
+	out := new(Hash)
+	err := c.cc.Invoke(ctx, "/pb.Storer/SetEncodedObject", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +275,8 @@ func (c *storerClient) Modules(ctx context.Context, in *None, opts ...grpc.CallO
 // for forward compatibility
 type StorerServer interface {
 	// NewEncodedObject
-	NewEncodedObject(context.Context, *None) (*EncodedObject, error)
+	// rpc NewEncodedObject(None) returns (EncodedObject) {}
+	SetEncodedObject(context.Context, *EncodedObject) (*Hash, error)
 	SetEncodedObjectType(context.Context, *Int8) (*None, error)
 	SetEncodedObjectSetSize(context.Context, *Int64) (*None, error)
 	EncodedObjectReader(*None, Storer_EncodedObjectReaderServer) error
@@ -305,8 +307,8 @@ type StorerServer interface {
 type UnimplementedStorerServer struct {
 }
 
-func (UnimplementedStorerServer) NewEncodedObject(context.Context, *None) (*EncodedObject, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method NewEncodedObject not implemented")
+func (UnimplementedStorerServer) SetEncodedObject(context.Context, *EncodedObject) (*Hash, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetEncodedObject not implemented")
 }
 func (UnimplementedStorerServer) SetEncodedObjectType(context.Context, *Int8) (*None, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetEncodedObjectType not implemented")
@@ -375,20 +377,20 @@ func RegisterStorerServer(s grpc.ServiceRegistrar, srv StorerServer) {
 	s.RegisterService(&Storer_ServiceDesc, srv)
 }
 
-func _Storer_NewEncodedObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(None)
+func _Storer_SetEncodedObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EncodedObject)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StorerServer).NewEncodedObject(ctx, in)
+		return srv.(StorerServer).SetEncodedObject(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pb.Storer/NewEncodedObject",
+		FullMethod: "/pb.Storer/SetEncodedObject",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorerServer).NewEncodedObject(ctx, req.(*None))
+		return srv.(StorerServer).SetEncodedObject(ctx, req.(*EncodedObject))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -736,8 +738,8 @@ var Storer_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*StorerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "NewEncodedObject",
-			Handler:    _Storer_NewEncodedObject_Handler,
+			MethodName: "SetEncodedObject",
+			Handler:    _Storer_SetEncodedObject_Handler,
 		},
 		{
 			MethodName: "SetEncodedObjectType",

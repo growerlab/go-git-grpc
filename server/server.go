@@ -16,7 +16,7 @@ func New(root, address string) error {
 	}
 
 	s := grpc.NewServer()
-	store := &Storer{
+	store := &Store{
 		root: root,
 	}
 

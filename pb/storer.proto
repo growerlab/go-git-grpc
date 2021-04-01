@@ -6,7 +6,8 @@ package pb;
 
 service Storer {
   // NewEncodedObject
-  rpc NewEncodedObject(None) returns (EncodedObject) {}
+  // rpc NewEncodedObject(None) returns (EncodedObject) {}
+  rpc SetEncodedObject(EncodedObject) returns (Hash) {}
   rpc SetEncodedObjectType(Int8) returns (None) {}
   rpc SetEncodedObjectSetSize(Int64) returns (None) {}
   rpc EncodedObjectReader(None) returns (stream Bytes) {}
@@ -54,6 +55,10 @@ message Int64 {
 message Bytes {
   string RepoPath = 1;
   bytes Value = 2;
+}
+
+message Hash {
+  string Value = 1;
 }
 
 message ModuleNames {
@@ -208,9 +213,10 @@ message Hashs {
 
 // EncodedObject.Hash
 message EncodedObject {
-  string Hash = 1;
-  string Type = 2;
-  int64 Size = 3;
+  string RepoPath = 1;
+  string Hash = 2;
+  string Type = 3;
+  int64 Size = 4;
 }
 
 message Reference {

@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"log"
 
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -29,19 +28,25 @@ func (s *Store) Close() error {
 }
 
 func (s *Store) NewEncodedObject() plumbing.EncodedObject {
+	return &plumbing.MemoryObject{}
+}
+
+func (s *Store) SetEncodedObject(object plumbing.EncodedObject) (plumbing.Hash, error) {
 	obj := &EncodedObject{
 		ctx:      s.ctx,
 		repoPath: s.repoPath,
 		client:   s.client,
+		obj: &pb.EncodedObject{
+			RepoPath: s.repoPath,
+			Hash:     object.Hash().String(),
+			Type:     object.Type().String(),
+			Size:     object.Size(),
+		},
 	}
-	if err := obj.Init(); err != nil {
-		log.Printf("New encoded object err: %+v\n", err)
-	}
-	return obj
-}
 
-func (s *Store) SetEncodedObject(object plumbing.EncodedObject) (plumbing.Hash, error) {
-	panic("implement me")
+	// s.client.
+	// 	panic("implement me")
+	return nil, nil
 }
 
 func (s *Store) EncodedObject(objectType plumbing.ObjectType, hash plumbing.Hash) (plumbing.EncodedObject, error) {

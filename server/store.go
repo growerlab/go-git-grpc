@@ -10,31 +10,44 @@ import (
 	"github.com/pkg/errors"
 )
 
-var _ pb.StorerServer = &Storer{}
+var _ pb.StorerServer = &Store{}
 
-type Storer struct {
+type Store struct {
 	*pb.UnimplementedStorerServer
 
 	root string // 仓库根目录
 }
 
-func (s *Storer) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.EncodedObject, error) {
-	var result *pb.EncodedObject
-	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
-		obj := r.Storer.NewEncodedObject()
-		result = new(pb.EncodedObject)
-		result.Type = obj.Type().String()
-		result.Size = obj.Size()
-		result.Hash = obj.Hash().String()
+func (s *Store) SetEncodedObject(ctx context.Context, o *pb.EncodedObject) (*pb.Hash, error) {
+	var result *pb.Hash
+	err := repo(s.root, o.RepoPath, func(r *git.Repository) error {
+		t, err := plumbing.ParseObjectType(o.Type)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		obj := &MemoryObject{
+			ctx:    ctx,
+			server: s,
+			t:      t,
+			h:      plumbing.NewHash(o.Hash),
+			cont:   []byte{},
+			sz:     o.Size,
+		}
+
+		h, err := r.Storer.SetEncodedObject(obj)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		result = &pb.Hash{
+			Value: h.String(),
+		}
 		return nil
 	})
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	return result, nil
+	return result, errors.WithStack(err)
 }
 
-func (s *Storer) SetEncodedObjectType(ctx context.Context, i *pb.Int8) (*pb.None, error) {
+func (s *Store) SetEncodedObjectType(ctx context.Context, i *pb.Int8) (*pb.None, error) {
 	var result = &pb.None{RepoPath: i.RepoPath}
 	var encodedObjectType plumbing.ObjectType
 
@@ -52,7 +65,7 @@ func (s *Storer) SetEncodedObjectType(ctx context.Context, i *pb.Int8) (*pb.None
 	return result, nil
 }
 
-func (s *Storer) SetEncodedObjectSetSize(ctx context.Context, i *pb.Int64) (*pb.None, error) {
+func (s *Store) SetEncodedObjectSetSize(ctx context.Context, i *pb.Int64) (*pb.None, error) {
 	var result = &pb.None{RepoPath: i.RepoPath}
 
 	err := repo(s.root, i.RepoPath, func(r *git.Repository) error {
@@ -65,7 +78,7 @@ func (s *Storer) SetEncodedObjectSetSize(ctx context.Context, i *pb.Int64) (*pb.
 	return result, nil
 }
 
-func (s *Storer) EncodedObjectReader(none *pb.None, server pb.Storer_EncodedObjectReaderServer) error {
+func (s *Store) EncodedObjectReader(none *pb.None, server pb.Storer_EncodedObjectReaderServer) error {
 	var buf = make([]byte, 512)
 	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
 		reader, err := r.Storer.NewEncodedObject().Reader()
@@ -90,7 +103,7 @@ func (s *Storer) EncodedObjectReader(none *pb.None, server pb.Storer_EncodedObje
 	return err
 }
 
-func (s *Storer) EncodedObjectWriter(server pb.Storer_EncodedObjectWriterServer) error {
+func (s *Store) EncodedObjectWriter(server pb.Storer_EncodedObjectWriterServer) error {
 	firstRecvBytes, err := server.Recv()
 	if err != nil {
 		return errors.WithStack(err)
@@ -122,7 +135,7 @@ func (s *Storer) EncodedObjectWriter(server pb.Storer_EncodedObjectWriterServer)
 	return err
 }
 
-func (s *Storer) SetReference(ctx context.Context, reference *pb.Reference) (*pb.None, error) {
+func (s *Store) SetReference(ctx context.Context, reference *pb.Reference) (*pb.None, error) {
 	var result = &pb.None{}
 	err := repo(s.root, reference.RepoPath, func(r *git.Repository) error {
 		ref := plumbing.NewReferenceFromStrings(reference.N, reference.Target)
@@ -132,7 +145,7 @@ func (s *Storer) SetReference(ctx context.Context, reference *pb.Reference) (*pb
 	return result, err
 }
 
-func (s *Storer) CheckAndSetReference(ctx context.Context, params *pb.SetReferenceParams) (*pb.None, error) {
+func (s *Store) CheckAndSetReference(ctx context.Context, params *pb.SetReferenceParams) (*pb.None, error) {
 	var result = &pb.None{}
 	err := repo(s.root, params.RepoPath, func(r *git.Repository) error {
 		newRef := plumbing.NewReferenceFromStrings(params.New.N, params.New.Target)
@@ -143,7 +156,7 @@ func (s *Storer) CheckAndSetReference(ctx context.Context, params *pb.SetReferen
 	return result, err
 }
 
-func (s *Storer) GetReference(ctx context.Context, name *pb.ReferenceName) (*pb.Reference, error) {
+func (s *Store) GetReference(ctx context.Context, name *pb.ReferenceName) (*pb.Reference, error) {
 	var result *pb.Reference
 	err := repo(s.root, name.RepoPath, func(r *git.Repository) error {
 		ref, err := r.Storer.Reference(plumbing.ReferenceName(name.Name))
@@ -157,7 +170,7 @@ func (s *Storer) GetReference(ctx context.Context, name *pb.ReferenceName) (*pb.
 	return result, err
 }
 
-func (s *Storer) GetReferences(ctx context.Context, none *pb.None) (*pb.References, error) {
+func (s *Store) GetReferences(ctx context.Context, none *pb.None) (*pb.References, error) {
 	var result = new(pb.References)
 	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
 		iter, err := r.Storer.IterReferences()
@@ -175,7 +188,7 @@ func (s *Storer) GetReferences(ctx context.Context, none *pb.None) (*pb.Referenc
 	return result, err
 }
 
-func (s *Storer) RemoveReference(ctx context.Context, name *pb.ReferenceName) (*pb.None, error) {
+func (s *Store) RemoveReference(ctx context.Context, name *pb.ReferenceName) (*pb.None, error) {
 	err := repo(s.root, name.RepoPath, func(r *git.Repository) error {
 		rn := plumbing.ReferenceName(name.Name)
 		err := r.Storer.RemoveReference(rn)
@@ -184,7 +197,7 @@ func (s *Storer) RemoveReference(ctx context.Context, name *pb.ReferenceName) (*
 	return &pb.None{}, err
 }
 
-func (s *Storer) CountLooseRefs(ctx context.Context, none *pb.None) (*pb.Int64, error) {
+func (s *Store) CountLooseRefs(ctx context.Context, none *pb.None) (*pb.Int64, error) {
 	var result = new(pb.Int64)
 	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
 		count, err := r.Storer.CountLooseRefs()
@@ -197,7 +210,7 @@ func (s *Storer) CountLooseRefs(ctx context.Context, none *pb.None) (*pb.Int64, 
 	return result, err
 }
 
-func (s *Storer) PackRefs(ctx context.Context, none *pb.None) (*pb.None, error) {
+func (s *Store) PackRefs(ctx context.Context, none *pb.None) (*pb.None, error) {
 	var result = new(pb.None)
 	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
 		return errors.WithStack(r.Storer.PackRefs())
@@ -205,7 +218,7 @@ func (s *Storer) PackRefs(ctx context.Context, none *pb.None) (*pb.None, error) 
 	return result, err
 }
 
-func (s *Storer) SetShallow(ctx context.Context, hashs *pb.Hashs) (*pb.None, error) {
+func (s *Store) SetShallow(ctx context.Context, hashs *pb.Hashs) (*pb.None, error) {
 	var result = new(pb.None)
 	err := repo(s.root, hashs.RepoPath, func(r *git.Repository) error {
 		commits := make([]plumbing.Hash, len(hashs.Hash))
@@ -218,7 +231,7 @@ func (s *Storer) SetShallow(ctx context.Context, hashs *pb.Hashs) (*pb.None, err
 	return result, err
 }
 
-func (s *Storer) Shallow(ctx context.Context, none *pb.None) (*pb.Hashs, error) {
+func (s *Store) Shallow(ctx context.Context, none *pb.None) (*pb.Hashs, error) {
 	var result = new(pb.Hashs)
 	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
 		commits, err := r.Storer.Shallow()
@@ -233,7 +246,7 @@ func (s *Storer) Shallow(ctx context.Context, none *pb.None) (*pb.Hashs, error) 
 	return result, err
 }
 
-func (s *Storer) SetIndex(ctx context.Context, idx *pb.Index) (*pb.None, error) {
+func (s *Store) SetIndex(ctx context.Context, idx *pb.Index) (*pb.None, error) {
 	var result = new(pb.None)
 	err := repo(s.root, idx.RepoPath, func(r *git.Repository) error {
 		newIdx := buildPbRefToIndex(idx)
@@ -243,7 +256,7 @@ func (s *Storer) SetIndex(ctx context.Context, idx *pb.Index) (*pb.None, error) 
 	return result, err
 }
 
-func (s *Storer) GetIndex(ctx context.Context, none *pb.None) (*pb.Index, error) {
+func (s *Store) GetIndex(ctx context.Context, none *pb.None) (*pb.Index, error) {
 	var result *pb.Index
 	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
 		idx, err := r.Storer.Index()
@@ -256,7 +269,7 @@ func (s *Storer) GetIndex(ctx context.Context, none *pb.None) (*pb.Index, error)
 	return result, err
 }
 
-func (s *Storer) GetConfig(ctx context.Context, none *pb.None) (*pb.Config, error) {
+func (s *Store) GetConfig(ctx context.Context, none *pb.None) (*pb.Config, error) {
 	var result = new(pb.Config)
 	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
 		cfg, err := r.Storer.Config()
@@ -269,7 +282,7 @@ func (s *Storer) GetConfig(ctx context.Context, none *pb.None) (*pb.Config, erro
 	return result, err
 }
 
-func (s *Storer) SetConfig(ctx context.Context, c *pb.Config) (*pb.None, error) {
+func (s *Store) SetConfig(ctx context.Context, c *pb.Config) (*pb.None, error) {
 	var result = new(pb.None)
 	err := repo(s.root, c.RepoPath, func(r *git.Repository) error {
 		cfg := buildPbConfigFromConfig(c)
@@ -279,7 +292,7 @@ func (s *Storer) SetConfig(ctx context.Context, c *pb.Config) (*pb.None, error) 
 	return result, err
 }
 
-func (s *Storer) Modules(ctx context.Context, none *pb.None) (*pb.ModuleNames, error) {
+func (s *Store) Modules(ctx context.Context, none *pb.None) (*pb.ModuleNames, error) {
 	var result = new(pb.ModuleNames)
 	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
 		cfg, err := r.Storer.Config()
@@ -294,6 +307,6 @@ func (s *Storer) Modules(ctx context.Context, none *pb.None) (*pb.ModuleNames, e
 	return result, err
 }
 
-func (s *Storer) mustEmbedUnimplementedStorerServer() {
+func (s *Store) mustEmbedUnimplementedStorerServer() {
 
 }

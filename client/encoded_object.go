@@ -21,17 +21,6 @@ type EncodedObject struct {
 	obj *pb.EncodedObject
 }
 
-func (e *EncodedObject) Init() error {
-	var err error
-	var params = &pb.None{RepoPath: e.repoPath}
-
-	e.obj, err = e.client.NewEncodedObject(e.ctx, params)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	return nil
-}
-
 func (e *EncodedObject) Hash() plumbing.Hash {
 	return plumbing.NewHash(e.obj.Hash)
 }
@@ -76,7 +65,7 @@ func (e *EncodedObject) Reader() (io.ReadCloser, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return &EncodedObjectReadWriter{ctx: e.ctx, reader: reader}, nil
+	return &EncodedObjectReadWriter{repoPath: e.repoPath, ctx: e.ctx, reader: reader}, nil
 }
 
 func (e *EncodedObject) Writer() (io.WriteCloser, error) {
@@ -85,36 +74,52 @@ func (e *EncodedObject) Writer() (io.WriteCloser, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return &EncodedObjectReadWriter{ctx: e.ctx, writer: writer}, nil
+	return &EncodedObjectReadWriter{repoPath: e.repoPath, ctx: e.ctx, writer: writer}, nil
 }
 
 var _ io.ReadWriteCloser = (*EncodedObjectReadWriter)(nil)
 
 type EncodedObjectReadWriter struct {
-	ctx    context.Context
-	reader pb.Storer_EncodedObjectReaderClient
-	writer pb.Storer_EncodedObjectWriterClient
+	repoPath     string
+	ctx          context.Context
+	reader       pb.Storer_EncodedObjectReaderClient
+	writer       pb.Storer_EncodedObjectWriterClient
+	writtenCount int
 }
 
 func (e *EncodedObjectReadWriter) Read(p []byte) (n int, err error) {
 	if len(p) < 512 {
-		return 0, errors.New("'p' minimum length 512")
+		return 0, errors.New("'p' minimum length 512 bytes")
 	}
 	b, err := e.reader.Recv()
 	if err != nil {
-		return 0, errors.WithStack(err)
+		if b != nil && len(b.Value) > 0 {
+			n = copy(p, b.Value)
+		}
+		return 0, err
 	}
 	n = copy(p, b.Value)
 	return
 }
 
 func (e *EncodedObjectReadWriter) Write(p []byte) (n int, err error) {
+	repoPath := e.repoPath
+	if e.writtenCount > 0 {
+		repoPath = "" // only send once for reduce buf
+	}
 
-	panic("implement me")
+	buf := &pb.Bytes{
+		RepoPath: repoPath,
+		Value:    p,
+	}
+	err = e.writer.Send(buf)
+	if err != nil {
+		return 0, err
+	}
+	e.writtenCount++
+	return len(p), nil
 }
 
 func (e *EncodedObjectReadWriter) Close() error {
-	if e.reader != nil {
-		e.reader.CloseSend()
-	}
+	return nil
 }

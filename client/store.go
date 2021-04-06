@@ -3,6 +3,8 @@ package client
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
@@ -16,6 +18,7 @@ var _ storage.Storer = (*Store)(nil)
 
 type Store struct {
 	repoPath string
+	lastErr  error
 
 	ctx      context.Context
 	grpcConn *grpc.ClientConn
@@ -28,25 +31,30 @@ func (s *Store) Close() error {
 }
 
 func (s *Store) NewEncodedObject() plumbing.EncodedObject {
-	return &plumbing.MemoryObject{}
-}
-
-func (s *Store) SetEncodedObject(object plumbing.EncodedObject) (plumbing.Hash, error) {
-	obj := &EncodedObject{
-		ctx:      s.ctx,
-		repoPath: s.repoPath,
-		client:   s.client,
-		obj: &pb.EncodedObject{
-			RepoPath: s.repoPath,
-			Hash:     object.Hash().String(),
-			Type:     object.Type().String(),
-			Size:     object.Size(),
-		},
+	params := &pb.None{RepoPath: s.repoPath}
+	resp, err := s.client.NewEncodedObject(s.ctx, params)
+	if err != nil {
+		s.lastErr = errors.WithStack(err)
+		return nil
 	}
 
-	// s.client.
-	// 	panic("implement me")
-	return nil, nil
+	return &EncodedObject{
+		ctx:      s.ctx,
+		client:   s.client,
+		repoPath: s.repoPath,
+		uuid:     resp.Value,
+	}
+}
+
+func (s *Store) SetEncodedObject(obj plumbing.EncodedObject) (plumbing.Hash, error) {
+	ob := obj.(*EncodedObject)
+	params := &pb.UUID{Value: ob.uuid}
+
+	hash, err := s.client.SetEncodedObject(s.ctx, params)
+	if err != nil {
+		return plumbing.ZeroHash, errors.WithStack(err)
+	}
+	return plumbing.NewHash(hash.Value), nil
 }
 
 func (s *Store) EncodedObject(objectType plumbing.ObjectType, hash plumbing.Hash) (plumbing.EncodedObject, error) {

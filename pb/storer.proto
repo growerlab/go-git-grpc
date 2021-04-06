@@ -5,13 +5,15 @@ option go_package = "github.com/growerlab/go-git-grpc/pb";
 package pb;
 
 service Storer {
-  // NewEncodedObject
-  // rpc NewEncodedObject(None) returns (EncodedObject) {}
-  rpc SetEncodedObject(EncodedObject) returns (Hash) {}
-  rpc SetEncodedObjectType(Int8) returns (None) {}
+  // EncodedObjectStorer
+  rpc NewEncodedObject(None) returns (UUID) {}
+  rpc SetEncodedObject(UUID) returns (Hash) {}
+  rpc SetEncodedObjectType(Int) returns (None) {}
   rpc SetEncodedObjectSetSize(Int64) returns (None) {}
-  rpc EncodedObjectReader(None) returns (stream Bytes) {}
-  rpc EncodedObjectWriter(stream Bytes) returns (stream Int64) {}
+  rpc EncodedObjectType(None) returns (Int) {}
+  rpc EncodedObjectHash(None) returns (Hash) {}
+  rpc EncodedObjectSize(None) returns (Int64) {}
+  rpc EncodedObjectRWStream(stream RWStream) returns (stream RWStream) {}
 
   // ReferenceStorer
   rpc SetReference(Reference) returns (None) {}
@@ -38,18 +40,45 @@ service Storer {
   rpc Modules(None) returns (ModuleNames) {}
 }
 
-message None {
+// EncodedObject.Hash
+message EncodedObject {
   string RepoPath = 1;
+  string Hash = 2;
+  string Type = 3;
+  int64 Size = 4;
+  bytes Context = 5;
 }
 
-message Int8 {
+message UUID {
+  string Value = 1;
+}
+
+message RWStream {
+  string UUID = 1; // uniq uuid
+  enum FlagEnum {
+    READ = 0;
+    WRITE = 1;
+  }
+  FlagEnum Flag = 2;
+  string RepoPath = 3; // repo path
+  bytes Value = 4; // buf
+}
+
+message None {
   string RepoPath = 1;
-  bytes Value = 2;
+  string UUID = 2;
+}
+
+message Int {
+  string RepoPath = 1;
+  string UUID = 2;
+  int32 Value = 3;
 }
 
 message Int64 {
   string RepoPath = 1;
-  int64 Value = 2;
+  string UUID = 2;
+  int64 Value = 3;
 }
 
 message Bytes {
@@ -209,14 +238,6 @@ message Entry {
 message Hashs {
   string RepoPath = 1;
   repeated string Hash = 2;
-}
-
-// EncodedObject.Hash
-message EncodedObject {
-  string RepoPath = 1;
-  string Hash = 2;
-  string Type = 3;
-  int64 Size = 4;
 }
 
 message Reference {

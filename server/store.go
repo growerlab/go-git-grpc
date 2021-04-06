@@ -1,40 +1,52 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"io"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/google/uuid"
 	"github.com/growerlab/go-git-grpc/pb"
 	"github.com/pkg/errors"
 )
 
-var _ pb.StorerServer = &Store{}
+var (
+	ErrNotFoundObject = errors.New("Not found object")
+)
+
+var _ pb.StorerServer = (*Store)(nil)
 
 type Store struct {
 	*pb.UnimplementedStorerServer
 
-	root string // 仓库根目录
+	// 仓库根目录
+	root string
+
+	objectLRU *ObjectLRU
 }
 
-func (s *Store) SetEncodedObject(ctx context.Context, o *pb.EncodedObject) (*pb.Hash, error) {
+func (s *Store) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.UUID, error) {
+	obj := &EncodedObject{
+		ctx:      ctx,
+		uuid:     uuid.NewString(),
+		repoPath: none.RepoPath,
+		obj:      &plumbing.MemoryObject{},
+	}
+	s.objectLRU.Put(obj)
+	return &pb.UUID{Value: obj.UUID()}, nil
+}
+
+func (s *Store) SetEncodedObject(ctx context.Context, uuid *pb.UUID) (*pb.Hash, error) {
 	var result *pb.Hash
-	err := repo(s.root, o.RepoPath, func(r *git.Repository) error {
-		t, err := plumbing.ParseObjectType(o.Type)
-		if err != nil {
-			return errors.WithStack(err)
-		}
+	var key = uuid.Value
+	var obj, exists = s.getObject(key)
+	if !exists {
+		return nil, ErrNotFoundObject
+	}
 
-		obj := &MemoryObject{
-			ctx:    ctx,
-			server: s,
-			t:      t,
-			h:      plumbing.NewHash(o.Hash),
-			cont:   []byte{},
-			sz:     o.Size,
-		}
-
+	err := repo(s.root, obj.repoPath, func(r *git.Repository) error {
 		h, err := r.Storer.SetEncodedObject(obj)
 		if err != nil {
 			return errors.WithStack(err)
@@ -46,93 +58,110 @@ func (s *Store) SetEncodedObject(ctx context.Context, o *pb.EncodedObject) (*pb.
 	})
 	return result, errors.WithStack(err)
 }
+func (s *Store) SetEncodedObjectType(ctx context.Context, i *pb.Int) (*pb.None, error) {
+	var result = &pb.None{UUID: i.UUID}
+	var objectType = plumbing.ObjectType(i.Value)
 
-func (s *Store) SetEncodedObjectType(ctx context.Context, i *pb.Int8) (*pb.None, error) {
-	var result = &pb.None{RepoPath: i.RepoPath}
-	var encodedObjectType plumbing.ObjectType
-
-	if len(i.Value) > 0 {
-		encodedObjectType = plumbing.ObjectType(i.Value[0])
+	obj, exists := s.getObject(i.UUID)
+	if !exists {
+		return nil, ErrNotFoundObject
 	}
+	obj.SetType(objectType)
 
-	err := repo(s.root, i.RepoPath, func(r *git.Repository) error {
-		r.Storer.NewEncodedObject().SetType(encodedObjectType)
-		return nil
-	})
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
 	return result, nil
 }
 
 func (s *Store) SetEncodedObjectSetSize(ctx context.Context, i *pb.Int64) (*pb.None, error) {
-	var result = &pb.None{RepoPath: i.RepoPath}
+	var result = &pb.None{UUID: i.UUID}
 
-	err := repo(s.root, i.RepoPath, func(r *git.Repository) error {
-		r.Storer.NewEncodedObject().SetSize(i.Value)
-		return nil
-	})
-	if err != nil {
-		return nil, errors.WithStack(err)
+	obj, exists := s.getObject(i.UUID)
+	if !exists {
+		return nil, ErrNotFoundObject
 	}
+	obj.SetSize(i.Value)
+
 	return result, nil
 }
 
-func (s *Store) EncodedObjectReader(none *pb.None, server pb.Storer_EncodedObjectReaderServer) error {
-	var buf = make([]byte, 512)
-	err := repo(s.root, none.RepoPath, func(r *git.Repository) error {
-		reader, err := r.Storer.NewEncodedObject().Reader()
+func (s *Store) EncodedObjectType(ctx context.Context, none *pb.None) (*pb.Int, error) {
+	obj, exists := s.getObject(none.UUID)
+	if !exists {
+		return nil, ErrNotFoundObject
+	}
+	return &pb.Int{Value: int32(obj.Type())}, nil
+}
+
+func (s *Store) EncodedObjectHash(ctx context.Context, none *pb.None) (*pb.Hash, error) {
+	obj, exists := s.getObject(none.UUID)
+	if !exists {
+		return nil, ErrNotFoundObject
+	}
+	return &pb.Hash{Value: obj.uuid}, nil
+}
+
+func (s *Store) EncodedObjectSize(ctx context.Context, none *pb.None) (*pb.Int64, error) {
+	obj, exists := s.getObject(none.UUID)
+	if !exists {
+		return nil, ErrNotFoundObject
+	}
+	return &pb.Int64{Value: obj.Size()}, nil
+}
+
+func (s *Store) EncodedObjectRWStream(stream pb.Storer_EncodedObjectRWStreamServer) error {
+	first, err := stream.Recv()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	key := first.UUID
+	obj, exists := s.getObject(key)
+	if !exists {
+		return ErrNotFoundObject
+	}
+
+	switch first.Flag {
+	case pb.RWStream_READ:
+		reader, err := obj.Reader()
 		if err != nil {
 			return errors.WithStack(err)
 		}
 		defer reader.Close()
 
+		var buf = make([]byte, bytes.MinRead)
 		for {
-			buf := buf[:0]
-			n, err := io.ReadFull(reader, buf)
-			if n > 0 {
-				err = server.Send(&pb.Bytes{
-					Value: buf,
-				})
+			var n int
+			n, err = reader.Read(buf)
+			if err == io.EOF {
+				return err
 			}
+			buf = buf[:n]
+			err = stream.Send(&pb.RWStream{
+				Value: buf,
+			})
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
+			buf = buf[:bytes.MinRead]
 		}
-	})
-	return err
-}
-
-func (s *Store) EncodedObjectWriter(server pb.Storer_EncodedObjectWriterServer) error {
-	firstRecvBytes, err := server.Recv()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	err = repo(s.root, firstRecvBytes.RepoPath, func(r *git.Repository) error {
-		writer, err := r.Storer.NewEncodedObject().Writer()
+	case pb.RWStream_WRITE:
+		writer, err := obj.Writer()
 		if err != nil {
 			return errors.WithStack(err)
 		}
 		defer writer.Close()
 
-		_, err = writer.Write(firstRecvBytes.Value)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
 		for {
-			recvMsg, err := server.Recv()
-			if err != nil {
-				return errors.WithStack(err)
+			rw, err := stream.Recv()
+			if err == io.EOF {
+				return err
 			}
-			_, err = writer.Write(recvMsg.Value)
+			_, err = writer.Write(rw.Value)
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 		}
-	})
-	return err
+	}
+
+	return nil
 }
 
 func (s *Store) SetReference(ctx context.Context, reference *pb.Reference) (*pb.None, error) {
@@ -307,6 +336,11 @@ func (s *Store) Modules(ctx context.Context, none *pb.None) (*pb.ModuleNames, er
 	return result, err
 }
 
-func (s *Store) mustEmbedUnimplementedStorerServer() {
+func (s *Store) mustEmbedUnimplementedStorerServer() {}
 
+func (s *Store) getObject(uuid string) (*EncodedObject, bool) {
+	return s.objectLRU.Get(uuid)
+}
+func (s *Store) putObject(obj *EncodedObject) {
+	s.objectLRU.Put(obj)
 }

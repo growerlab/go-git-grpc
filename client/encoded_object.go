@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"log"
@@ -14,112 +15,131 @@ import (
 var _ plumbing.EncodedObject = (*EncodedObject)(nil)
 
 type EncodedObject struct {
-	ctx      context.Context
-	repoPath string
-	client   pb.StorerClient
+	ctx    context.Context
+	client pb.StorerClient
 
-	obj *pb.EncodedObject
+	repoPath string
+	uuid     string
 }
 
 func (e *EncodedObject) Hash() plumbing.Hash {
-	return plumbing.NewHash(e.obj.Hash)
+	params := &pb.None{RepoPath: e.repoPath, UUID: e.uuid}
+	resp, err := e.client.EncodedObjectHash(e.ctx, params)
+	if err != nil {
+		log.Printf("call EncodedObjectHash was err: %+v\n", err)
+		return plumbing.ZeroHash
+	}
+	return plumbing.NewHash(resp.Value)
 }
 
+var UnknownObjectType plumbing.ObjectType = -126
+
 func (e *EncodedObject) Type() plumbing.ObjectType {
-	ty, err := plumbing.ParseObjectType(e.obj.Type)
+	params := &pb.None{RepoPath: e.repoPath, UUID: e.uuid}
+	resp, err := e.client.EncodedObjectType(e.ctx, params)
 	if err != nil {
-		log.Printf("Get encoded object type '%s' was err: %+v\n", e.obj.Type, err)
+		log.Printf("call EncodedObjectType was err: %+v\n", err)
+		return UnknownObjectType
 	}
-	return ty
+	return plumbing.ObjectType(int8(resp.Value))
 }
 
 func (e *EncodedObject) SetType(objectType plumbing.ObjectType) {
-	var params = &pb.Int8{
-		RepoPath: e.repoPath,
-		Value:    []byte{byte(objectType)},
-	}
+	params := &pb.Int{RepoPath: e.repoPath, UUID: e.uuid, Value: int32(objectType)}
 	_, err := e.client.SetEncodedObjectType(e.ctx, params)
 	if err != nil {
-		log.Printf("Set encoded object type '%s' was err: %+v\n", objectType.String(), err)
+		log.Printf("call SetEncodedObjectType was err: %+v\n", err)
+		return
 	}
 }
 
 func (e *EncodedObject) Size() int64 {
-	return e.obj.Size
+	params := &pb.None{RepoPath: e.repoPath, UUID: e.uuid}
+	resp, err := e.client.EncodedObjectSize(e.ctx, params)
+	if err != nil {
+		log.Printf("call EncodedObjectSize was err: %+v\n", err)
+		return 0
+	}
+	return resp.Value
 }
 
 func (e *EncodedObject) SetSize(i int64) {
-	var params = &pb.Int64{
+	params := &pb.Int64{
 		RepoPath: e.repoPath,
+		UUID:     e.uuid,
 		Value:    i,
 	}
 	_, err := e.client.SetEncodedObjectSetSize(e.ctx, params)
 	if err != nil {
-		log.Printf("Set encoded object size was err: %+v\n", err)
+		log.Printf("call SetEncodedObjectSetSize was err: %+v\n", err)
+		return
 	}
 }
 
 func (e *EncodedObject) Reader() (io.ReadCloser, error) {
-	var params = &pb.None{RepoPath: e.repoPath}
-	reader, err := e.client.EncodedObjectReader(e.ctx, params)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	return &EncodedObjectReadWriter{repoPath: e.repoPath, ctx: e.ctx, reader: reader}, nil
+	return e.buildStream(pb.RWStream_READ)
 }
 
 func (e *EncodedObject) Writer() (io.WriteCloser, error) {
-	// var params = &pb.None{RepoPath: e.repoPath}
-	writer, err := e.client.EncodedObjectWriter(e.ctx)
+	return e.buildStream(pb.RWStream_WRITE)
+}
+
+func (e *EncodedObject) buildStream(flag pb.RWStream_FlagEnum) (*EncodedObjectStream, error) {
+	stream, err := e.client.EncodedObjectRWStream(e.ctx)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return &EncodedObjectReadWriter{repoPath: e.repoPath, ctx: e.ctx, writer: writer}, nil
-}
 
-var _ io.ReadWriteCloser = (*EncodedObjectReadWriter)(nil)
-
-type EncodedObjectReadWriter struct {
-	repoPath     string
-	ctx          context.Context
-	reader       pb.Storer_EncodedObjectReaderClient
-	writer       pb.Storer_EncodedObjectWriterClient
-	writtenCount int
-}
-
-func (e *EncodedObjectReadWriter) Read(p []byte) (n int, err error) {
-	if len(p) < 512 {
-		return 0, errors.New("'p' minimum length 512 bytes")
-	}
-	b, err := e.reader.Recv()
+	// 告知服务器操作
+	err = stream.Send(&pb.RWStream{
+		UUID:     e.uuid,
+		RepoPath: e.repoPath,
+		Flag:     flag,
+	})
 	if err != nil {
-		if b != nil && len(b.Value) > 0 {
-			n = copy(p, b.Value)
-		}
+		return nil, errors.WithStack(err)
+	}
+
+	return &EncodedObjectStream{
+		uuid:     e.uuid,
+		repoPath: e.repoPath,
+		ctx:      e.ctx,
+		stream:   stream,
+	}, nil
+}
+
+var _ io.ReadWriteCloser = (*EncodedObjectStream)(nil)
+
+type EncodedObjectStream struct {
+	uuid     string
+	repoPath string
+	ctx      context.Context
+	stream   pb.Storer_EncodedObjectRWStreamClient
+}
+
+func (e *EncodedObjectStream) Read(p []byte) (n int, err error) {
+	if len(p) < bytes.MinRead {
+		return 0, errors.Errorf("'p' length lt %d bytes", bytes.MinRead)
+	}
+
+	var stream *pb.RWStream
+	stream, err = e.stream.Recv()
+	if err != nil {
 		return 0, err
 	}
-	n = copy(p, b.Value)
+	n = copy(p, stream.Value)
 	return
 }
 
-func (e *EncodedObjectReadWriter) Write(p []byte) (n int, err error) {
-	repoPath := e.repoPath
-	if e.writtenCount > 0 {
-		repoPath = "" // only send once for reduce buf
+func (e *EncodedObjectStream) Write(p []byte) (n int, err error) {
+	rw := &pb.RWStream{
+		Value: p,
 	}
-
-	buf := &pb.Bytes{
-		RepoPath: repoPath,
-		Value:    p,
-	}
-	err = e.writer.Send(buf)
-	if err != nil {
-		return 0, err
-	}
-	e.writtenCount++
-	return len(p), nil
+	err = e.stream.Send(rw)
+	return len(p), errors.WithStack(err)
 }
 
-func (e *EncodedObjectReadWriter) Close() error {
-	return nil
+func (e *EncodedObjectStream) Close() error {
+	err := e.stream.CloseSend()
+	return errors.WithStack(err)
 }

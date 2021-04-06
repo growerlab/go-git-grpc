@@ -18,13 +18,15 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type StorerClient interface {
-	// NewEncodedObject
-	// rpc NewEncodedObject(None) returns (EncodedObject) {}
-	SetEncodedObject(ctx context.Context, in *EncodedObject, opts ...grpc.CallOption) (*Hash, error)
-	SetEncodedObjectType(ctx context.Context, in *Int8, opts ...grpc.CallOption) (*None, error)
+	// EncodedObjectStorer
+	NewEncodedObject(ctx context.Context, in *None, opts ...grpc.CallOption) (*UUID, error)
+	SetEncodedObject(ctx context.Context, in *UUID, opts ...grpc.CallOption) (*Hash, error)
+	SetEncodedObjectType(ctx context.Context, in *Int, opts ...grpc.CallOption) (*None, error)
 	SetEncodedObjectSetSize(ctx context.Context, in *Int64, opts ...grpc.CallOption) (*None, error)
-	EncodedObjectReader(ctx context.Context, in *None, opts ...grpc.CallOption) (Storer_EncodedObjectReaderClient, error)
-	EncodedObjectWriter(ctx context.Context, opts ...grpc.CallOption) (Storer_EncodedObjectWriterClient, error)
+	EncodedObjectType(ctx context.Context, in *None, opts ...grpc.CallOption) (*Int, error)
+	EncodedObjectHash(ctx context.Context, in *None, opts ...grpc.CallOption) (*Hash, error)
+	EncodedObjectSize(ctx context.Context, in *None, opts ...grpc.CallOption) (*Int64, error)
+	EncodedObjectRWStream(ctx context.Context, opts ...grpc.CallOption) (Storer_EncodedObjectRWStreamClient, error)
 	// ReferenceStorer
 	SetReference(ctx context.Context, in *Reference, opts ...grpc.CallOption) (*None, error)
 	CheckAndSetReference(ctx context.Context, in *SetReferenceParams, opts ...grpc.CallOption) (*None, error)
@@ -54,7 +56,16 @@ func NewStorerClient(cc grpc.ClientConnInterface) StorerClient {
 	return &storerClient{cc}
 }
 
-func (c *storerClient) SetEncodedObject(ctx context.Context, in *EncodedObject, opts ...grpc.CallOption) (*Hash, error) {
+func (c *storerClient) NewEncodedObject(ctx context.Context, in *None, opts ...grpc.CallOption) (*UUID, error) {
+	out := new(UUID)
+	err := c.cc.Invoke(ctx, "/pb.Storer/NewEncodedObject", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storerClient) SetEncodedObject(ctx context.Context, in *UUID, opts ...grpc.CallOption) (*Hash, error) {
 	out := new(Hash)
 	err := c.cc.Invoke(ctx, "/pb.Storer/SetEncodedObject", in, out, opts...)
 	if err != nil {
@@ -63,7 +74,7 @@ func (c *storerClient) SetEncodedObject(ctx context.Context, in *EncodedObject, 
 	return out, nil
 }
 
-func (c *storerClient) SetEncodedObjectType(ctx context.Context, in *Int8, opts ...grpc.CallOption) (*None, error) {
+func (c *storerClient) SetEncodedObjectType(ctx context.Context, in *Int, opts ...grpc.CallOption) (*None, error) {
 	out := new(None)
 	err := c.cc.Invoke(ctx, "/pb.Storer/SetEncodedObjectType", in, out, opts...)
 	if err != nil {
@@ -81,63 +92,58 @@ func (c *storerClient) SetEncodedObjectSetSize(ctx context.Context, in *Int64, o
 	return out, nil
 }
 
-func (c *storerClient) EncodedObjectReader(ctx context.Context, in *None, opts ...grpc.CallOption) (Storer_EncodedObjectReaderClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Storer_ServiceDesc.Streams[0], "/pb.Storer/EncodedObjectReader", opts...)
+func (c *storerClient) EncodedObjectType(ctx context.Context, in *None, opts ...grpc.CallOption) (*Int, error) {
+	out := new(Int)
+	err := c.cc.Invoke(ctx, "/pb.Storer/EncodedObjectType", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &storerEncodedObjectReaderClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+	return out, nil
 }
 
-type Storer_EncodedObjectReaderClient interface {
-	Recv() (*Bytes, error)
-	grpc.ClientStream
-}
-
-type storerEncodedObjectReaderClient struct {
-	grpc.ClientStream
-}
-
-func (x *storerEncodedObjectReaderClient) Recv() (*Bytes, error) {
-	m := new(Bytes)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *storerClient) EncodedObjectWriter(ctx context.Context, opts ...grpc.CallOption) (Storer_EncodedObjectWriterClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Storer_ServiceDesc.Streams[1], "/pb.Storer/EncodedObjectWriter", opts...)
+func (c *storerClient) EncodedObjectHash(ctx context.Context, in *None, opts ...grpc.CallOption) (*Hash, error) {
+	out := new(Hash)
+	err := c.cc.Invoke(ctx, "/pb.Storer/EncodedObjectHash", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &storerEncodedObjectWriterClient{stream}
+	return out, nil
+}
+
+func (c *storerClient) EncodedObjectSize(ctx context.Context, in *None, opts ...grpc.CallOption) (*Int64, error) {
+	out := new(Int64)
+	err := c.cc.Invoke(ctx, "/pb.Storer/EncodedObjectSize", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storerClient) EncodedObjectRWStream(ctx context.Context, opts ...grpc.CallOption) (Storer_EncodedObjectRWStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Storer_ServiceDesc.Streams[0], "/pb.Storer/EncodedObjectRWStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &storerEncodedObjectRWStreamClient{stream}
 	return x, nil
 }
 
-type Storer_EncodedObjectWriterClient interface {
-	Send(*Bytes) error
-	Recv() (*Int64, error)
+type Storer_EncodedObjectRWStreamClient interface {
+	Send(*RWStream) error
+	Recv() (*RWStream, error)
 	grpc.ClientStream
 }
 
-type storerEncodedObjectWriterClient struct {
+type storerEncodedObjectRWStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *storerEncodedObjectWriterClient) Send(m *Bytes) error {
+func (x *storerEncodedObjectRWStreamClient) Send(m *RWStream) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *storerEncodedObjectWriterClient) Recv() (*Int64, error) {
-	m := new(Int64)
+func (x *storerEncodedObjectRWStreamClient) Recv() (*RWStream, error) {
+	m := new(RWStream)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -274,13 +280,15 @@ func (c *storerClient) Modules(ctx context.Context, in *None, opts ...grpc.CallO
 // All implementations must embed UnimplementedStorerServer
 // for forward compatibility
 type StorerServer interface {
-	// NewEncodedObject
-	// rpc NewEncodedObject(None) returns (EncodedObject) {}
-	SetEncodedObject(context.Context, *EncodedObject) (*Hash, error)
-	SetEncodedObjectType(context.Context, *Int8) (*None, error)
+	// EncodedObjectStorer
+	NewEncodedObject(context.Context, *None) (*UUID, error)
+	SetEncodedObject(context.Context, *UUID) (*Hash, error)
+	SetEncodedObjectType(context.Context, *Int) (*None, error)
 	SetEncodedObjectSetSize(context.Context, *Int64) (*None, error)
-	EncodedObjectReader(*None, Storer_EncodedObjectReaderServer) error
-	EncodedObjectWriter(Storer_EncodedObjectWriterServer) error
+	EncodedObjectType(context.Context, *None) (*Int, error)
+	EncodedObjectHash(context.Context, *None) (*Hash, error)
+	EncodedObjectSize(context.Context, *None) (*Int64, error)
+	EncodedObjectRWStream(Storer_EncodedObjectRWStreamServer) error
 	// ReferenceStorer
 	SetReference(context.Context, *Reference) (*None, error)
 	CheckAndSetReference(context.Context, *SetReferenceParams) (*None, error)
@@ -307,20 +315,29 @@ type StorerServer interface {
 type UnimplementedStorerServer struct {
 }
 
-func (UnimplementedStorerServer) SetEncodedObject(context.Context, *EncodedObject) (*Hash, error) {
+func (UnimplementedStorerServer) NewEncodedObject(context.Context, *None) (*UUID, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NewEncodedObject not implemented")
+}
+func (UnimplementedStorerServer) SetEncodedObject(context.Context, *UUID) (*Hash, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetEncodedObject not implemented")
 }
-func (UnimplementedStorerServer) SetEncodedObjectType(context.Context, *Int8) (*None, error) {
+func (UnimplementedStorerServer) SetEncodedObjectType(context.Context, *Int) (*None, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetEncodedObjectType not implemented")
 }
 func (UnimplementedStorerServer) SetEncodedObjectSetSize(context.Context, *Int64) (*None, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetEncodedObjectSetSize not implemented")
 }
-func (UnimplementedStorerServer) EncodedObjectReader(*None, Storer_EncodedObjectReaderServer) error {
-	return status.Errorf(codes.Unimplemented, "method EncodedObjectReader not implemented")
+func (UnimplementedStorerServer) EncodedObjectType(context.Context, *None) (*Int, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EncodedObjectType not implemented")
 }
-func (UnimplementedStorerServer) EncodedObjectWriter(Storer_EncodedObjectWriterServer) error {
-	return status.Errorf(codes.Unimplemented, "method EncodedObjectWriter not implemented")
+func (UnimplementedStorerServer) EncodedObjectHash(context.Context, *None) (*Hash, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EncodedObjectHash not implemented")
+}
+func (UnimplementedStorerServer) EncodedObjectSize(context.Context, *None) (*Int64, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EncodedObjectSize not implemented")
+}
+func (UnimplementedStorerServer) EncodedObjectRWStream(Storer_EncodedObjectRWStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method EncodedObjectRWStream not implemented")
 }
 func (UnimplementedStorerServer) SetReference(context.Context, *Reference) (*None, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetReference not implemented")
@@ -377,8 +394,26 @@ func RegisterStorerServer(s grpc.ServiceRegistrar, srv StorerServer) {
 	s.RegisterService(&Storer_ServiceDesc, srv)
 }
 
+func _Storer_NewEncodedObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(None)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorerServer).NewEncodedObject(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Storer/NewEncodedObject",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorerServer).NewEncodedObject(ctx, req.(*None))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Storer_SetEncodedObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EncodedObject)
+	in := new(UUID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -390,13 +425,13 @@ func _Storer_SetEncodedObject_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: "/pb.Storer/SetEncodedObject",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorerServer).SetEncodedObject(ctx, req.(*EncodedObject))
+		return srv.(StorerServer).SetEncodedObject(ctx, req.(*UUID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Storer_SetEncodedObjectType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Int8)
+	in := new(Int)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -408,7 +443,7 @@ func _Storer_SetEncodedObjectType_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: "/pb.Storer/SetEncodedObjectType",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorerServer).SetEncodedObjectType(ctx, req.(*Int8))
+		return srv.(StorerServer).SetEncodedObjectType(ctx, req.(*Int))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -431,47 +466,80 @@ func _Storer_SetEncodedObjectSetSize_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Storer_EncodedObjectReader_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(None)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+func _Storer_EncodedObjectType_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(None)
+	if err := dec(in); err != nil {
+		return nil, err
 	}
-	return srv.(StorerServer).EncodedObjectReader(m, &storerEncodedObjectReaderServer{stream})
+	if interceptor == nil {
+		return srv.(StorerServer).EncodedObjectType(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Storer/EncodedObjectType",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorerServer).EncodedObjectType(ctx, req.(*None))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
-type Storer_EncodedObjectReaderServer interface {
-	Send(*Bytes) error
+func _Storer_EncodedObjectHash_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(None)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorerServer).EncodedObjectHash(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Storer/EncodedObjectHash",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorerServer).EncodedObjectHash(ctx, req.(*None))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Storer_EncodedObjectSize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(None)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorerServer).EncodedObjectSize(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Storer/EncodedObjectSize",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorerServer).EncodedObjectSize(ctx, req.(*None))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Storer_EncodedObjectRWStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(StorerServer).EncodedObjectRWStream(&storerEncodedObjectRWStreamServer{stream})
+}
+
+type Storer_EncodedObjectRWStreamServer interface {
+	Send(*RWStream) error
+	Recv() (*RWStream, error)
 	grpc.ServerStream
 }
 
-type storerEncodedObjectReaderServer struct {
+type storerEncodedObjectRWStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *storerEncodedObjectReaderServer) Send(m *Bytes) error {
+func (x *storerEncodedObjectRWStreamServer) Send(m *RWStream) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Storer_EncodedObjectWriter_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(StorerServer).EncodedObjectWriter(&storerEncodedObjectWriterServer{stream})
-}
-
-type Storer_EncodedObjectWriterServer interface {
-	Send(*Int64) error
-	Recv() (*Bytes, error)
-	grpc.ServerStream
-}
-
-type storerEncodedObjectWriterServer struct {
-	grpc.ServerStream
-}
-
-func (x *storerEncodedObjectWriterServer) Send(m *Int64) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *storerEncodedObjectWriterServer) Recv() (*Bytes, error) {
-	m := new(Bytes)
+func (x *storerEncodedObjectRWStreamServer) Recv() (*RWStream, error) {
+	m := new(RWStream)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -738,6 +806,10 @@ var Storer_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*StorerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "NewEncodedObject",
+			Handler:    _Storer_NewEncodedObject_Handler,
+		},
+		{
 			MethodName: "SetEncodedObject",
 			Handler:    _Storer_SetEncodedObject_Handler,
 		},
@@ -748,6 +820,18 @@ var Storer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetEncodedObjectSetSize",
 			Handler:    _Storer_SetEncodedObjectSetSize_Handler,
+		},
+		{
+			MethodName: "EncodedObjectType",
+			Handler:    _Storer_EncodedObjectType_Handler,
+		},
+		{
+			MethodName: "EncodedObjectHash",
+			Handler:    _Storer_EncodedObjectHash_Handler,
+		},
+		{
+			MethodName: "EncodedObjectSize",
+			Handler:    _Storer_EncodedObjectSize_Handler,
 		},
 		{
 			MethodName: "SetReference",
@@ -808,13 +892,8 @@ var Storer_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "EncodedObjectReader",
-			Handler:       _Storer_EncodedObjectReader_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "EncodedObjectWriter",
-			Handler:       _Storer_EncodedObjectWriter_Handler,
+			StreamName:    "EncodedObjectRWStream",
+			Handler:       _Storer_EncodedObjectRWStream_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

@@ -99,7 +99,15 @@ func (s *Store) CheckAndSetReference(new, old *plumbing.Reference) error {
 }
 
 func (s *Store) Reference(name plumbing.ReferenceName) (*plumbing.Reference, error) {
-	panic("implement me")
+	params := &pb.ReferenceName{
+		RepoPath: s.repoPath,
+		Name:     name.String(),
+	}
+	result, err := s.client.GetReference(s.ctx, params)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return plumbing.NewReferenceFromStrings(result.N, result.Target), nil
 }
 
 func (s *Store) IterReferences() (storer.ReferenceIter, error) {

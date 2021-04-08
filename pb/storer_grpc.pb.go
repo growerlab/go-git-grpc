@@ -23,6 +23,7 @@ type StorerClient interface {
 	SetEncodedObject(ctx context.Context, in *UUID, opts ...grpc.CallOption) (*Hash, error)
 	SetEncodedObjectType(ctx context.Context, in *Int, opts ...grpc.CallOption) (*None, error)
 	SetEncodedObjectSetSize(ctx context.Context, in *Int64, opts ...grpc.CallOption) (*None, error)
+	EncodedObjectEntity(ctx context.Context, in *GetEncodeObject, opts ...grpc.CallOption) (*EncodedObject, error)
 	EncodedObjectType(ctx context.Context, in *None, opts ...grpc.CallOption) (*Int, error)
 	EncodedObjectHash(ctx context.Context, in *None, opts ...grpc.CallOption) (*Hash, error)
 	EncodedObjectSize(ctx context.Context, in *None, opts ...grpc.CallOption) (*Int64, error)
@@ -86,6 +87,15 @@ func (c *storerClient) SetEncodedObjectType(ctx context.Context, in *Int, opts .
 func (c *storerClient) SetEncodedObjectSetSize(ctx context.Context, in *Int64, opts ...grpc.CallOption) (*None, error) {
 	out := new(None)
 	err := c.cc.Invoke(ctx, "/pb.Storer/SetEncodedObjectSetSize", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storerClient) EncodedObjectEntity(ctx context.Context, in *GetEncodeObject, opts ...grpc.CallOption) (*EncodedObject, error) {
+	out := new(EncodedObject)
+	err := c.cc.Invoke(ctx, "/pb.Storer/EncodedObjectEntity", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -285,6 +295,7 @@ type StorerServer interface {
 	SetEncodedObject(context.Context, *UUID) (*Hash, error)
 	SetEncodedObjectType(context.Context, *Int) (*None, error)
 	SetEncodedObjectSetSize(context.Context, *Int64) (*None, error)
+	EncodedObjectEntity(context.Context, *GetEncodeObject) (*EncodedObject, error)
 	EncodedObjectType(context.Context, *None) (*Int, error)
 	EncodedObjectHash(context.Context, *None) (*Hash, error)
 	EncodedObjectSize(context.Context, *None) (*Int64, error)
@@ -326,6 +337,9 @@ func (UnimplementedStorerServer) SetEncodedObjectType(context.Context, *Int) (*N
 }
 func (UnimplementedStorerServer) SetEncodedObjectSetSize(context.Context, *Int64) (*None, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetEncodedObjectSetSize not implemented")
+}
+func (UnimplementedStorerServer) EncodedObjectEntity(context.Context, *GetEncodeObject) (*EncodedObject, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EncodedObjectEntity not implemented")
 }
 func (UnimplementedStorerServer) EncodedObjectType(context.Context, *None) (*Int, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EncodedObjectType not implemented")
@@ -462,6 +476,24 @@ func _Storer_SetEncodedObjectSetSize_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StorerServer).SetEncodedObjectSetSize(ctx, req.(*Int64))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Storer_EncodedObjectEntity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEncodeObject)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorerServer).EncodedObjectEntity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Storer/EncodedObjectEntity",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorerServer).EncodedObjectEntity(ctx, req.(*GetEncodeObject))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -820,6 +852,10 @@ var Storer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetEncodedObjectSetSize",
 			Handler:    _Storer_SetEncodedObjectSetSize_Handler,
+		},
+		{
+			MethodName: "EncodedObjectEntity",
+			Handler:    _Storer_EncodedObjectEntity_Handler,
 		},
 		{
 			MethodName: "EncodedObjectType",

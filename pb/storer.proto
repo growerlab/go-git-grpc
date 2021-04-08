@@ -10,6 +10,7 @@ service Storer {
   rpc SetEncodedObject(UUID) returns (Hash) {}
   rpc SetEncodedObjectType(Int) returns (None) {}
   rpc SetEncodedObjectSetSize(Int64) returns (None) {}
+  rpc EncodedObjectEntity(GetEncodeObject) returns (EncodedObject) {}
   rpc EncodedObjectType(None) returns (Int) {}
   rpc EncodedObjectHash(None) returns (Hash) {}
   rpc EncodedObjectSize(None) returns (Int64) {}
@@ -40,13 +41,18 @@ service Storer {
   rpc Modules(None) returns (ModuleNames) {}
 }
 
-// EncodedObject.Hash
 message EncodedObject {
+  string UUID = 1;
+  string RepoPath = 2;
+  string Hash = 3;
+  string Type = 4;
+  int64 Size = 5;
+}
+
+message GetEncodeObject {
   string RepoPath = 1;
   string Hash = 2;
   string Type = 3;
-  int64 Size = 4;
-  bytes Context = 5;
 }
 
 message UUID {

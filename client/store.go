@@ -58,7 +58,24 @@ func (s *Store) SetEncodedObject(obj plumbing.EncodedObject) (plumbing.Hash, err
 }
 
 func (s *Store) EncodedObject(objectType plumbing.ObjectType, hash plumbing.Hash) (plumbing.EncodedObject, error) {
-	panic("implement me")
+	params := &pb.GetEncodeObject{
+		RepoPath: s.repoPath,
+		Hash:     hash.String(),
+		Type:     objectType.String(),
+	}
+	obj, err := s.client.EncodedObjectEntity(s.ctx, params)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	result := &EncodedObject{
+		ctx:            s.ctx,
+		client:         s.client,
+		repoPath:       s.repoPath,
+		uuid:           obj.UUID,
+		readonlyObject: buildReadonlyEncodedObject(obj),
+	}
+	return result, nil
 }
 
 func (s *Store) IterEncodedObjects(objectType plumbing.ObjectType) (storer.EncodedObjectIter, error) {
@@ -127,4 +144,13 @@ func (s *Store) SetConfig(config *config.Config) error {
 
 func (s *Store) Module(name string) (storage.Storer, error) {
 	panic("implement me")
+}
+
+func buildReadonlyEncodedObject(obj *pb.EncodedObject) plumbing.EncodedObject {
+	typ, _ := plumbing.ParseObjectType(obj.Type)
+	return &ReadonlyEncodedObject{
+		hash: plumbing.NewHash(obj.Hash),
+		typ:  typ,
+		size: obj.GetSize(),
+	}
 }

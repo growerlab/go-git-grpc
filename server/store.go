@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/google/uuid"
 	"github.com/growerlab/go-git-grpc/pb"
 	"github.com/pkg/errors"
 )
@@ -28,12 +27,7 @@ type Store struct {
 }
 
 func (s *Store) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.UUID, error) {
-	obj := &EncodedObject{
-		ctx:      ctx,
-		uuid:     uuid.NewString(),
-		repoPath: none.RepoPath,
-		obj:      &plumbing.MemoryObject{},
-	}
+	obj := NewEncodedObject(ctx, buildUUID(), none.RepoPath, &plumbing.MemoryObject{})
 	s.objectLRU.Put(obj)
 	return &pb.UUID{Value: obj.UUID()}, nil
 }
@@ -81,6 +75,30 @@ func (s *Store) SetEncodedObjectSetSize(ctx context.Context, i *pb.Int64) (*pb.N
 	obj.SetSize(i.Value)
 
 	return result, nil
+}
+
+func (s *Store) EncodedObjectEntity(ctx context.Context, objEntity *pb.GetEncodeObject) (*pb.EncodedObject, error) {
+	var result *pb.EncodedObject
+	var repoPath = objEntity.RepoPath
+
+	err := repo(s.root, objEntity.RepoPath, func(r *git.Repository) error {
+		objectType, err := plumbing.ParseObjectType(objEntity.Type)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		hash := plumbing.NewHash(objEntity.Hash)
+		obj, err := r.Storer.EncodedObject(objectType, hash)
+		if err != nil {
+			return err
+		}
+
+		newObj := NewEncodedObject(ctx, buildUUID(), repoPath, obj)
+		s.objectLRU.Put(newObj)
+
+		result = newObj.PBEncodeObject()
+		return nil
+	})
+	return result, err
 }
 
 func (s *Store) EncodedObjectType(ctx context.Context, none *pb.None) (*pb.Int, error) {

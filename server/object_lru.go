@@ -3,6 +3,8 @@ package server
 import (
 	"container/list"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -18,6 +20,10 @@ type ObjectLRU struct {
 	cache *sync.Map
 	// TODO 未来可能要改成多级锁提高性能
 	mut sync.Mutex
+}
+
+func buildUUID() string {
+	return uuid.NewString()
 }
 
 func NewObjectLRUDefault() *ObjectLRU {

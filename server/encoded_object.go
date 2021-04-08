@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/growerlab/go-git-grpc/pb"
 )
 
 var _ EncodedObjectExt = (*EncodedObject)(nil)
@@ -20,6 +21,15 @@ type EncodedObject struct {
 	uuid     string
 	repoPath string
 	obj      plumbing.EncodedObject
+}
+
+func NewEncodedObject(ctx context.Context, uuid, repoPath string, obj plumbing.EncodedObject) *EncodedObject {
+	return &EncodedObject{
+		ctx:      nil,
+		uuid:     "",
+		repoPath: "",
+		obj:      nil,
+	}
 }
 
 func (o *EncodedObject) UUID() string { return o.uuid }
@@ -40,4 +50,13 @@ func (o *EncodedObject) Reader() (io.ReadCloser, error) {
 
 func (o *EncodedObject) Writer() (io.WriteCloser, error) {
 	return o.obj.Writer()
+}
+
+func (o *EncodedObject) PBEncodeObject() *pb.EncodedObject {
+	return &pb.EncodedObject{
+		UUID: o.uuid,
+		Hash: o.obj.Hash().String(),
+		Type: o.obj.Type().String(),
+		Size: o.obj.Size(),
+	}
 }

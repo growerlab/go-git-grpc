@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/go-git/go-git/v5/config"
@@ -193,6 +194,10 @@ func buildConfigFromPbConfig(cfg *config.Config) *pb.Config {
 	}
 	result.Pack = &pb.Config_MsgPack{
 		Window: uint64(cfg.Pack.Window),
+	}
+	raw, err := json.Marshal(cfg.Raw)
+	if err == nil {
+		result.Raw = raw
 	}
 
 	var remotes = make([]*pb.MapRemotes, 0, len(cfg.Remotes))

@@ -130,7 +130,7 @@ message Config {
   repeated MapRemotes Remotes = 2;
   repeated MapSubmodule Submodules = 3;
   repeated MapBranch Branches = 4;
-  Config Raw = 5;
+  bytes Raw = 5;
   MsgCore Core = 6;
   MsgUser User  = 7;
   MsgAuthor Author = 8;

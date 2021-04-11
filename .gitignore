@@ -2,3 +2,6 @@ vendor
 .idea
 .vscode
 main
+
+test/testrepo_bare
+test/testrepo

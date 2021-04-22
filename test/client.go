@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/growerlab/go-git-grpc/client"
 	"github.com/growerlab/go-git-grpc/server"
 )
@@ -35,9 +36,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	bn, err := repo.Branch("master")
+	refs, err := repo.References()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(bn)
+	refs.ForEach(func(r *plumbing.Reference) error {
+		fmt.Println(r.Name())
+		return nil
+	})
 }

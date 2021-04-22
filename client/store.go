@@ -13,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/storage"
+	"github.com/growerlab/go-git-grpc/common"
 	"github.com/growerlab/go-git-grpc/pb"
 	"google.golang.org/grpc"
 )
@@ -114,35 +115,100 @@ func (s *Store) Reference(name plumbing.ReferenceName) (*plumbing.Reference, err
 }
 
 func (s *Store) IterReferences() (storer.ReferenceIter, error) {
-	panic("implement me")
+	params := &pb.None{
+		RepoPath: s.repoPath,
+	}
+	pbRefs, err := s.client.GetReferences(s.ctx, params)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	refs := make([]*plumbing.Reference, 0, len(pbRefs.Refs))
+
+	for _, r := range pbRefs.Refs {
+		ref := plumbing.NewReferenceFromStrings(r.N, r.Target)
+		refs = append(refs, ref)
+	}
+
+	return storer.NewReferenceSliceIter(refs), nil
 }
 
 func (s *Store) RemoveReference(name plumbing.ReferenceName) error {
-	panic("implement me")
+	params := &pb.ReferenceName{
+		RepoPath: s.repoPath,
+		Name:     string(name),
+	}
+	_, err := s.client.RemoveReference(s.ctx, params)
+	return errors.WithStack(err)
 }
 
 func (s *Store) CountLooseRefs() (int, error) {
-	panic("implement me")
+	params := &pb.None{
+		RepoPath: s.repoPath,
+	}
+	n, err := s.client.CountLooseRefs(s.ctx, params)
+	return int(n.Value), errors.WithStack(err)
 }
 
 func (s *Store) PackRefs() error {
-	panic("implement me")
+	params := &pb.None{
+		RepoPath: s.repoPath,
+	}
+	_, err := s.client.PackRefs(s.ctx, params)
+	return errors.WithStack(err)
 }
 
 func (s *Store) SetShallow(hashes []plumbing.Hash) error {
-	panic("implement me")
+	if len(hashes) == 0 {
+		return nil
+	}
+	hashesStrs := make([]string, 0, len(hashes))
+	for _, h := range hashes {
+		hashesStrs = append(hashesStrs, h.String())
+	}
+
+	params := &pb.Hashs{
+		RepoPath: s.repoPath,
+		Hash:     hashesStrs,
+	}
+	_, err := s.client.SetShallow(s.ctx, params)
+	return errors.WithStack(err)
 }
 
 func (s *Store) Shallow() ([]plumbing.Hash, error) {
-	panic("implement me")
+	params := &pb.None{
+		RepoPath: s.repoPath,
+	}
+	rawHashes, err := s.client.Shallow(s.ctx, params)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	result := make([]plumbing.Hash, 0, len(rawHashes.Hash))
+	for _, h := range rawHashes.Hash {
+		result = append(result, plumbing.NewHash(h))
+	}
+	return result, nil
 }
 
 func (s *Store) SetIndex(index *index.Index) error {
-	panic("implement me")
+	params := &pb.Index{
+		RepoPath: s.repoPath,
+	}
+	_, err := s.client.SetIndex(s.ctx, params)
+	return errors.WithStack(err)
 }
 
 func (s *Store) Index() (*index.Index, error) {
-	panic("implement me")
+	params := &pb.None{
+		RepoPath: s.repoPath,
+	}
+	idx, err := s.client.GetIndex(s.ctx, params)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return common.BuildPbRefToIndex(idx), nil
 }
 
 func (s *Store) Config() (*config.Config, error) {

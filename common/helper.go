@@ -1,4 +1,4 @@
-package server
+package common
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 	"github.com/growerlab/go-git-grpc/pb"
 )
 
-func buildRefToPbRef(ref *plumbing.Reference) *pb.Reference {
+func BuildRefToPbRef(ref *plumbing.Reference) *pb.Reference {
 	result := &pb.Reference{
 		T:      []byte{byte(ref.Type())},
 		N:      string(ref.Name()),
@@ -22,7 +22,7 @@ func buildRefToPbRef(ref *plumbing.Reference) *pb.Reference {
 	return result
 }
 
-func buildIndexToPbRef(idx *index.Index) *pb.Index {
+func BuildIndexToPbRef(idx *index.Index) *pb.Index {
 	var entries []*pb.Entry
 	var cache *pb.Tree
 	var resolveUndo *pb.ResolveUndo
@@ -95,7 +95,7 @@ func buildIndexToPbRef(idx *index.Index) *pb.Index {
 	return newIdx
 }
 
-func buildPbRefToIndex(idx *pb.Index) *index.Index {
+func BuildPbRefToIndex(idx *pb.Index) *index.Index {
 	var entries []*index.Entry
 	var cache *index.Tree
 	var trees []index.TreeEntry
@@ -173,7 +173,7 @@ func buildPbRefToIndex(idx *pb.Index) *index.Index {
 	return newIdx
 }
 
-func buildConfigFromPbConfig(cfg *config.Config) *pb.Config {
+func BuildConfigFromPbConfig(cfg *config.Config) *pb.Config {
 	var result = new(pb.Config)
 	result.Core = &pb.Config_MsgCore{
 		IsBare:      cfg.Core.IsBare,
@@ -251,7 +251,7 @@ func buildConfigFromPbConfig(cfg *config.Config) *pb.Config {
 	return result
 }
 
-func buildPbConfigFromConfig(cfg *pb.Config) *config.Config {
+func BuildPbConfigFromConfig(cfg *pb.Config) *config.Config {
 	var result = &config.Config{}
 	result.Core.IsBare = cfg.Core.IsBare
 	result.Core.CommentChar = cfg.Core.CommentChar

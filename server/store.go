@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/growerlab/go-git-grpc/common"
 	"github.com/growerlab/go-git-grpc/pb"
 	"github.com/pkg/errors"
 )
@@ -211,7 +212,7 @@ func (s *Store) GetReference(ctx context.Context, name *pb.ReferenceName) (*pb.R
 			return errors.WithStack(err)
 		}
 
-		result = buildRefToPbRef(ref)
+		result = common.BuildRefToPbRef(ref)
 		return nil
 	})
 	return result, err
@@ -226,7 +227,7 @@ func (s *Store) GetReferences(ctx context.Context, none *pb.None) (*pb.Reference
 		}
 
 		err = iter.ForEach(func(ref *plumbing.Reference) error {
-			pbRef := buildRefToPbRef(ref)
+			pbRef := common.BuildRefToPbRef(ref)
 			result.Refs = append(result.Refs, pbRef)
 			return nil
 		})
@@ -296,7 +297,7 @@ func (s *Store) Shallow(ctx context.Context, none *pb.None) (*pb.Hashs, error) {
 func (s *Store) SetIndex(ctx context.Context, idx *pb.Index) (*pb.None, error) {
 	var result = new(pb.None)
 	err := repo(s.root, idx.RepoPath, func(r *git.Repository) error {
-		newIdx := buildPbRefToIndex(idx)
+		newIdx := common.BuildPbRefToIndex(idx)
 		err := r.Storer.SetIndex(newIdx)
 		return errors.WithStack(err)
 	})
@@ -310,7 +311,7 @@ func (s *Store) GetIndex(ctx context.Context, none *pb.None) (*pb.Index, error) 
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		result = buildIndexToPbRef(idx)
+		result = common.BuildIndexToPbRef(idx)
 		return nil
 	})
 	return result, err
@@ -323,7 +324,7 @@ func (s *Store) GetConfig(ctx context.Context, none *pb.None) (*pb.Config, error
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		result = buildConfigFromPbConfig(cfg)
+		result = common.BuildConfigFromPbConfig(cfg)
 		return nil
 	})
 	return result, err
@@ -332,7 +333,7 @@ func (s *Store) GetConfig(ctx context.Context, none *pb.None) (*pb.Config, error
 func (s *Store) SetConfig(ctx context.Context, c *pb.Config) (*pb.None, error) {
 	var result = new(pb.None)
 	err := repo(s.root, c.RepoPath, func(r *git.Repository) error {
-		cfg := buildPbConfigFromConfig(c)
+		cfg := common.BuildPbConfigFromConfig(c)
 		err := r.Storer.SetConfig(cfg)
 		return errors.WithStack(err)
 	})

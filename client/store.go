@@ -20,6 +20,16 @@ import (
 
 var _ storage.Storer = (*Store)(nil)
 
+func NewStore(ctx context.Context, repPath string, grpcConn *grpc.ClientConn, pbClient pb.StorerClient) *Store {
+	return &Store{
+		repoPath: repPath,
+		lastErr:  nil,
+		ctx:      ctx,
+		grpcConn: grpcConn,
+		client:   pbClient,
+	}
+}
+
 type Store struct {
 	repoPath string
 	lastErr  error

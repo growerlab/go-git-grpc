@@ -1,15 +1,17 @@
-package client
+package gggrpc
 
 import (
 	"context"
 	"io"
+
+	"github.com/growerlab/go-git-grpc/client"
 
 	"github.com/growerlab/go-git-grpc/pb"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
 
-func New(ctx context.Context, grpcServerAddr string, repoPath string) (*Store, io.Closer, error) {
+func NewClient(ctx context.Context, grpcServerAddr string, repoPath string) (*client.Store, io.Closer, error) {
 	conn, err := grpc.DialContext(ctx,
 		grpcServerAddr,
 		grpc.WithInsecure(),
@@ -21,11 +23,6 @@ func New(ctx context.Context, grpcServerAddr string, repoPath string) (*Store, i
 	}
 
 	c := pb.NewStorerClient(conn)
-	s := &Store{
-		repoPath: repoPath,
-		grpcConn: conn,
-		client:   c,
-		ctx:      ctx,
-	}
+	s := client.NewStore(ctx, repoPath, conn, c)
 	return s, s, nil
 }

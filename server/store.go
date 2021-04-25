@@ -18,6 +18,12 @@ var (
 
 var _ pb.StorerServer = (*Store)(nil)
 
+func NewStore(root string) *Store {
+	return &Store{
+		root: root,
+	}
+}
+
 type Store struct {
 	*pb.UnimplementedStorerServer
 

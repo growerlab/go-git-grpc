@@ -7,17 +7,17 @@ import (
 	"path"
 	"time"
 
+	gggrpc "github.com/growerlab/go-git-grpc"
+
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/growerlab/go-git-grpc/client"
-	"github.com/growerlab/go-git-grpc/server"
 )
 
 func main() {
 
 	go func() {
 		gitRoot := path.Join(os.Getenv("GOPATH"), "src/github.com/growerlab/go-git-grpc")
-		err := server.New(gitRoot, "localhost:8081")
+		err := gggrpc.NewServer(gitRoot, "localhost:8081")
 		if err != nil {
 			panic(err)
 		}
@@ -26,7 +26,7 @@ func main() {
 
 	clientCtx := context.Background()
 	repoPath := "test/testrepo_bare"
-	store, closeFn, err := client.New(clientCtx, "localhost:8081", repoPath)
+	store, closeFn, err := gggrpc.NewClient(clientCtx, "localhost:8081", repoPath)
 	if err != nil {
 		panic(err)
 	}

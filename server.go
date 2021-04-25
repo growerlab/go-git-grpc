@@ -1,7 +1,9 @@
-package server
+package gggrpc
 
 import (
 	"net"
+
+	"github.com/growerlab/go-git-grpc/server"
 
 	"github.com/growerlab/go-git-grpc/pb"
 
@@ -9,16 +11,14 @@ import (
 	"google.golang.org/grpc"
 )
 
-func New(root, address string) error {
+func NewServer(root, address string) error {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		return errors.Errorf("failed to listen: %v", err)
 	}
 
 	s := grpc.NewServer()
-	store := &Store{
-		root: root,
-	}
+	store := server.NewStore(root)
 
 	pb.RegisterStorerServer(s, store)
 	if err := s.Serve(lis); err != nil {

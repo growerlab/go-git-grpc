@@ -7,6 +7,10 @@
 - 通过grpc通信
 - 通过go-git完成各类git操作
 
+#### 使用
+
+参考 `test/client.go`
+
 #### 性能
 
 待测

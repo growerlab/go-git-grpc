@@ -25,10 +25,10 @@ type EncodedObject struct {
 
 func NewEncodedObject(ctx context.Context, uuid, repoPath string, obj plumbing.EncodedObject) *EncodedObject {
 	return &EncodedObject{
-		ctx:      nil,
-		uuid:     "",
-		repoPath: "",
-		obj:      nil,
+		ctx:      ctx,
+		uuid:     uuid,
+		repoPath: repoPath,
+		obj:      obj,
 	}
 }
 

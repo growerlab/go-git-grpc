@@ -30,7 +30,7 @@ type Store struct {
 	// 仓库根目录
 	root string
 
-	objectLRU *ObjectLRU
+	objectLRU *ObjectStash
 }
 
 func (s *Store) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.UUID, error) {

@@ -20,7 +20,8 @@ var _ pb.StorerServer = (*Store)(nil)
 
 func NewStore(root string) *Store {
 	return &Store{
-		root: root,
+		root:        root,
+		objectStash: NewObjectStash(0),
 	}
 }
 
@@ -30,12 +31,12 @@ type Store struct {
 	// 仓库根目录
 	root string
 
-	objectLRU *ObjectStash
+	objectStash *ObjectStash
 }
 
 func (s *Store) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.UUID, error) {
 	obj := NewEncodedObject(ctx, buildUUID(), none.RepoPath, &plumbing.MemoryObject{})
-	s.objectLRU.Put(obj)
+	s.objectStash.Put(obj)
 	return &pb.UUID{Value: obj.UUID()}, nil
 }
 
@@ -100,7 +101,7 @@ func (s *Store) EncodedObjectEntity(ctx context.Context, objEntity *pb.GetEncode
 		}
 
 		newObj := NewEncodedObject(ctx, buildUUID(), repoPath, obj)
-		s.objectLRU.Put(newObj)
+		s.objectStash.Put(newObj)
 
 		result = newObj.PBEncodeObject()
 		return nil
@@ -364,8 +365,8 @@ func (s *Store) Modules(ctx context.Context, none *pb.None) (*pb.ModuleNames, er
 func (s *Store) mustEmbedUnimplementedStorerServer() {}
 
 func (s *Store) getObject(uuid string) (*EncodedObject, bool) {
-	return s.objectLRU.Get(uuid)
+	return s.objectStash.Get(uuid)
 }
 func (s *Store) putObject(obj *EncodedObject) {
-	s.objectLRU.Put(obj)
+	s.objectStash.Put(obj)
 }

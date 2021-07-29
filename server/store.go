@@ -60,6 +60,7 @@ func (s *Store) SetEncodedObject(ctx context.Context, uuid *pb.UUID) (*pb.Hash, 
 	})
 	return result, errors.WithStack(err)
 }
+
 func (s *Store) SetEncodedObjectType(ctx context.Context, i *pb.Int) (*pb.None, error) {
 	var result = &pb.None{UUID: i.UUID}
 	var objectType = plumbing.ObjectType(i.Value)

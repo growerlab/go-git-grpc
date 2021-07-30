@@ -93,7 +93,8 @@ func (s *Store) EncodedObject(objectType plumbing.ObjectType, hash plumbing.Hash
 }
 
 func (s *Store) IterEncodedObjects(objectType plumbing.ObjectType) (storer.EncodedObjectIter, error) {
-	panic("implement me")
+	iter := NewEncodedObjectIterClient(s.ctx, s.repoPath, s.client)
+	return iter, nil
 }
 
 func (s *Store) HasEncodedObject(hash plumbing.Hash) error {

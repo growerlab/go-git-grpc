@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/growerlab/go-git-grpc/common"
 
 	gocache "github.com/patrickmn/go-cache"
 )
@@ -45,9 +45,5 @@ func (c *ObjectCache) Get(uuid string) (*EncodedObject, bool) {
 }
 
 func buildUUID() string {
-	t, n, _ := uuid.GetTime()
-	s := t.UnixTime()
-	b := s & n
-	uint16
-	return
+	return common.ShortUUID8()
 }

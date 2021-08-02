@@ -53,6 +53,6 @@ func (u *UUID) Take() string {
 	return newUUID.String()[:8]
 }
 
-func ShortUUID() string {
+func ShortUUID8() string {
 	return id.Take()
 }

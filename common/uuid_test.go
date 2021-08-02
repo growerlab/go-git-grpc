@@ -27,7 +27,7 @@ func TestGetUniqueID(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for j := 0; j < base; j++ {
-				id := ShortUUID()
+				id := ShortUUID8()
 				numChan <- id
 			}
 		}()

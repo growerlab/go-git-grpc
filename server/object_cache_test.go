@@ -8,8 +8,8 @@ import (
 )
 
 func TestObjectStash_Get(t *testing.T) {
-	o := NewObjectStash(1 * time.Second)
-	o.Put(NewEncodedObject(nil, "123", "", nil))
+	o := NewObjectCache(1 * time.Second)
+	o.Set(NewEncodedObject(nil, "123", "", nil))
 
 	obj, ok := o.Get("123")
 	assert.NotNil(t, obj)

@@ -21,7 +21,7 @@ var _ pb.StorerServer = (*Store)(nil)
 func NewStore(root string) *Store {
 	return &Store{
 		root:        root,
-		objectStash: NewObjectStash(0),
+		objectStash: NewObjectCache(0),
 	}
 }
 
@@ -31,12 +31,12 @@ type Store struct {
 	// 仓库根目录
 	root string
 
-	objectStash *ObjectStash
+	objectStash *ObjectCache
 }
 
 func (s *Store) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.UUID, error) {
 	obj := NewEncodedObject(ctx, buildUUID(), none.RepoPath, &plumbing.MemoryObject{})
-	s.objectStash.Put(obj)
+	s.objectStash.Set(obj)
 	return &pb.UUID{Value: obj.UUID()}, nil
 }
 
@@ -102,7 +102,7 @@ func (s *Store) EncodedObjectEntity(ctx context.Context, objEntity *pb.GetEncode
 		}
 
 		newObj := NewEncodedObject(ctx, buildUUID(), repoPath, obj)
-		s.objectStash.Put(newObj)
+		s.objectStash.Set(newObj)
 
 		result = newObj.PBEncodeObject()
 		return nil
@@ -369,5 +369,5 @@ func (s *Store) getObject(uuid string) (*EncodedObject, bool) {
 	return s.objectStash.Get(uuid)
 }
 func (s *Store) putObject(obj *EncodedObject) {
-	s.objectStash.Put(obj)
+	s.objectStash.Set(obj)
 }

@@ -13,6 +13,10 @@ const (
 	defaultCleanupInterval = 10 * time.Minute
 )
 
+type Object interface {
+	UUID() string
+}
+
 type ObjectCache struct {
 	cache *gocache.Cache
 }
@@ -27,20 +31,21 @@ func NewObjectCache(objectTimeout time.Duration) *ObjectCache {
 	}
 }
 
-func (c *ObjectCache) Set(obj *EncodedObject) {
+func (c *ObjectCache) Set(obj Object) {
 	key := obj.UUID()
 	c.cache.SetDefault(key, obj)
 }
 
-func (c *ObjectCache) Get(uuid string) (*EncodedObject, bool) {
+func (c *ObjectCache) Get(uuid string) (Object, bool) {
 	ee, ok := c.cache.Get(uuid)
 	if !ok {
 		return nil, false
 	}
-	obj, ok := ee.(*EncodedObject)
+	obj, ok := ee.(Object)
 	if !ok {
 		return nil, false
 	}
+	c.Set(obj) // 延期
 	return obj, true
 }
 

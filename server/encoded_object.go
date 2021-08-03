@@ -8,13 +8,6 @@ import (
 	"github.com/growerlab/go-git-grpc/pb"
 )
 
-var _ EncodedObjectExt = (*EncodedObject)(nil)
-
-type EncodedObjectExt interface {
-	UUID() string
-	plumbing.EncodedObject
-}
-
 type EncodedObject struct {
 	ctx context.Context
 

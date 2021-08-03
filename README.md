@@ -17,6 +17,10 @@
 
 #### 生成 proto
 
+打开 https://github.com/protocolbuffers/protobuf/releases
+下载protoc编译器：protoc-xxx-osx-x86_64.zip
+将 bin/protoc 移动 $GOPATH/bin 目录下。
+
 ```
 $ go get google.golang.org/protobuf/cmd/protoc-gen-go \
          google.golang.org/grpc/cmd/protoc-gen-go-grpc

@@ -45,5 +45,5 @@ func (c *ObjectCache) Get(uuid string) (*EncodedObject, bool) {
 }
 
 func buildUUID() string {
-	return common.ShortUUID8()
+	return common.ShortUUID()
 }

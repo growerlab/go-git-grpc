@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/growerlab/go-git-grpc/client"
-
 	"github.com/growerlab/go-git-grpc/pb"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"

@@ -3,10 +3,8 @@ package gggrpc
 import (
 	"net"
 
-	"github.com/growerlab/go-git-grpc/server"
-
 	"github.com/growerlab/go-git-grpc/pb"
-
+	"github.com/growerlab/go-git-grpc/server"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )

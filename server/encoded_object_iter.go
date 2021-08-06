@@ -9,10 +9,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *Store) NewEncodedObjectIter(ctx context.Context, tp *pb.ObjectType) (*pb.UUID, error) {
+func (s *Store) NewEncodedObjectIter(ctx context.Context, tp *pb.ObjectType) (*pb.None, error) {
 	var (
 		uuid     = buildUUID()
-		result   = &pb.UUID{Value: uuid}
+		result   = &pb.None{UUID: uuid}
 		repoPath = tp.RepoPath
 	)
 
@@ -35,6 +35,7 @@ func (s *Store) NewEncodedObjectIter(ctx context.Context, tp *pb.ObjectType) (*p
 	return result, err
 }
 
+// EncodedObjectNext(context.Context, *None) (*EncodedObject, error)
 func (s *Store) EncodedObjectNext(ctx context.Context, none *pb.None) (*pb.EncodedObject, error) {
 	var (
 		iterUUID = none.UUID
@@ -45,11 +46,13 @@ func (s *Store) EncodedObjectNext(ctx context.Context, none *pb.None) (*pb.Encod
 	if !ok {
 		return nil, ErrNotFoundIter
 	}
+
 	obj, err := iter.Next()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
-	newObj := NewEncodedObject(ctx, buildUUID(), repoPath, obj)
+
+	newObj := NewEncodedObject(context.Background(), buildUUID(), repoPath, obj)
 	s.putObject(newObj)
 
 	return newObj.PBEncodeObject(), nil
@@ -70,6 +73,16 @@ func (s *Store) EncodedObjectForEach(none *pb.None, stream pb.Storer_EncodedObje
 		s.putObject(obj)
 		return stream.Send(obj.PBEncodeObject())
 	})
+	return err
+}
+
+func (s *Store) EncodedObjectClose(ctx context.Context, none *pb.None) (*pb.None, error) {
+	iter, ok := s.getIter(none.UUID)
+	if !ok {
+		return nil, ErrNotFoundIter
+	}
+	iter.Close()
+	return none, nil
 }
 
 func (s *Store) putIter(iter *EncodedObjectIterExt) {

@@ -6,10 +6,9 @@ import (
 	"io"
 	"log"
 
-	"github.com/pkg/errors"
-
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/growerlab/go-git-grpc/pb"
+	"github.com/pkg/errors"
 )
 
 var _ plumbing.EncodedObject = (*EncodedObject)(nil)

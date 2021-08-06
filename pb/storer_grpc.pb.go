@@ -29,9 +29,10 @@ type StorerClient interface {
 	EncodedObjectSize(ctx context.Context, in *None, opts ...grpc.CallOption) (*Int64, error)
 	EncodedObjectRWStream(ctx context.Context, opts ...grpc.CallOption) (Storer_EncodedObjectRWStreamClient, error)
 	// EncodedObjectIter
-	NewEncodedObjectIter(ctx context.Context, in *ObjectType, opts ...grpc.CallOption) (*UUID, error)
+	NewEncodedObjectIter(ctx context.Context, in *ObjectType, opts ...grpc.CallOption) (*None, error)
 	EncodedObjectNext(ctx context.Context, in *None, opts ...grpc.CallOption) (*EncodedObject, error)
 	EncodedObjectForEach(ctx context.Context, in *None, opts ...grpc.CallOption) (Storer_EncodedObjectForEachClient, error)
+	EncodedObjectClose(ctx context.Context, in *None, opts ...grpc.CallOption) (*None, error)
 	// ReferenceStorer
 	SetReference(ctx context.Context, in *Reference, opts ...grpc.CallOption) (*None, error)
 	CheckAndSetReference(ctx context.Context, in *SetReferenceParams, opts ...grpc.CallOption) (*None, error)
@@ -164,8 +165,8 @@ func (x *storerEncodedObjectRWStreamClient) Recv() (*RWStream, error) {
 	return m, nil
 }
 
-func (c *storerClient) NewEncodedObjectIter(ctx context.Context, in *ObjectType, opts ...grpc.CallOption) (*UUID, error) {
-	out := new(UUID)
+func (c *storerClient) NewEncodedObjectIter(ctx context.Context, in *ObjectType, opts ...grpc.CallOption) (*None, error) {
+	out := new(None)
 	err := c.cc.Invoke(ctx, "/pb.Storer/NewEncodedObjectIter", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -212,6 +213,15 @@ func (x *storerEncodedObjectForEachClient) Recv() (*EncodedObject, error) {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (c *storerClient) EncodedObjectClose(ctx context.Context, in *None, opts ...grpc.CallOption) (*None, error) {
+	out := new(None)
+	err := c.cc.Invoke(ctx, "/pb.Storer/EncodedObjectClose", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *storerClient) SetReference(ctx context.Context, in *Reference, opts ...grpc.CallOption) (*None, error) {
@@ -355,9 +365,10 @@ type StorerServer interface {
 	EncodedObjectSize(context.Context, *None) (*Int64, error)
 	EncodedObjectRWStream(Storer_EncodedObjectRWStreamServer) error
 	// EncodedObjectIter
-	NewEncodedObjectIter(context.Context, *ObjectType) (*UUID, error)
+	NewEncodedObjectIter(context.Context, *ObjectType) (*None, error)
 	EncodedObjectNext(context.Context, *None) (*EncodedObject, error)
 	EncodedObjectForEach(*None, Storer_EncodedObjectForEachServer) error
+	EncodedObjectClose(context.Context, *None) (*None, error)
 	// ReferenceStorer
 	SetReference(context.Context, *Reference) (*None, error)
 	CheckAndSetReference(context.Context, *SetReferenceParams) (*None, error)
@@ -411,7 +422,7 @@ func (UnimplementedStorerServer) EncodedObjectSize(context.Context, *None) (*Int
 func (UnimplementedStorerServer) EncodedObjectRWStream(Storer_EncodedObjectRWStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method EncodedObjectRWStream not implemented")
 }
-func (UnimplementedStorerServer) NewEncodedObjectIter(context.Context, *ObjectType) (*UUID, error) {
+func (UnimplementedStorerServer) NewEncodedObjectIter(context.Context, *ObjectType) (*None, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NewEncodedObjectIter not implemented")
 }
 func (UnimplementedStorerServer) EncodedObjectNext(context.Context, *None) (*EncodedObject, error) {
@@ -419,6 +430,9 @@ func (UnimplementedStorerServer) EncodedObjectNext(context.Context, *None) (*Enc
 }
 func (UnimplementedStorerServer) EncodedObjectForEach(*None, Storer_EncodedObjectForEachServer) error {
 	return status.Errorf(codes.Unimplemented, "method EncodedObjectForEach not implemented")
+}
+func (UnimplementedStorerServer) EncodedObjectClose(context.Context, *None) (*None, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EncodedObjectClose not implemented")
 }
 func (UnimplementedStorerServer) SetReference(context.Context, *Reference) (*None, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetReference not implemented")
@@ -700,6 +714,24 @@ type storerEncodedObjectForEachServer struct {
 
 func (x *storerEncodedObjectForEachServer) Send(m *EncodedObject) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _Storer_EncodedObjectClose_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(None)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorerServer).EncodedObjectClose(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Storer/EncodedObjectClose",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorerServer).EncodedObjectClose(ctx, req.(*None))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Storer_SetReference_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -1000,6 +1032,10 @@ var Storer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EncodedObjectNext",
 			Handler:    _Storer_EncodedObjectNext_Handler,
+		},
+		{
+			MethodName: "EncodedObjectClose",
+			Handler:    _Storer_EncodedObjectClose_Handler,
 		},
 		{
 			MethodName: "SetReference",

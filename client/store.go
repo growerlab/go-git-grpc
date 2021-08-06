@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/pkg/errors"
-
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	format "github.com/go-git/go-git/v5/plumbing/format/config"
@@ -15,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/storage"
 	"github.com/growerlab/go-git-grpc/common"
 	"github.com/growerlab/go-git-grpc/pb"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
 

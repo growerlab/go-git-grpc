@@ -17,9 +17,10 @@ service Storer {
   rpc EncodedObjectRWStream(stream RWStream) returns (stream RWStream) {}
 
   // EncodedObjectIter
-  rpc NewEncodedObjectIter(ObjectType) returns (UUID) {}
+  rpc NewEncodedObjectIter(ObjectType) returns (None) {}
   rpc EncodedObjectNext(None) returns (EncodedObject) {}
   rpc EncodedObjectForEach(None) returns (stream EncodedObject) {}
+  rpc EncodedObjectClose(None) returns (None) {}
 
   // ReferenceStorer
   rpc SetReference(Reference) returns (None) {}

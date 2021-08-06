@@ -61,6 +61,8 @@ func (c *EncodedObjectIter) ForEach(f func(plumbing.EncodedObject) error) error 
 	}
 
 	forTimeout, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
 	for {
 		select {
 		case <-forTimeout.Done():
@@ -77,10 +79,9 @@ func (c *EncodedObjectIter) ForEach(f func(plumbing.EncodedObject) error) error 
 			}
 		}
 	}
-	return nil
 }
 
 func (c *EncodedObjectIter) Close() {
 	_, err := c.client.EncodedObjectClose(c.ctx, c.none)
-	log.Println("Call EncodedObjectClose was err: %+v\n", err)
+	log.Printf("call EncodedObjectClose was err: %+v\n", err)
 }

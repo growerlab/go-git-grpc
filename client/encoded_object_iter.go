@@ -45,13 +45,7 @@ func (c *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
 		return nil, err
 	}
 
-	return &EncodedObject{
-		ctx:            c.ctx,
-		client:         c.client,
-		repoPath:       c.repoPath,
-		uuid:           pbEncodedObject.UUID,
-		readonlyObject: buildReadonlyEncodedObject(pbEncodedObject),
-	}, nil
+	return buildEncodedObjectFromPB(c.ctx, c.client, c.repoPath, pbEncodedObject), nil
 }
 
 func (c *EncodedObjectIter) ForEach(f func(plumbing.EncodedObject) error) error {
@@ -73,7 +67,7 @@ func (c *EncodedObjectIter) ForEach(f func(plumbing.EncodedObject) error) error 
 				cancel()
 				return err
 			}
-			err = f(buildReadonlyEncodedObject(obj))
+			err = f(buildEncodedObjectFromPB(c.ctx, c.client, c.repoPath, obj))
 			if err != nil {
 				return err
 			}

@@ -84,7 +84,7 @@ func testCommits(repo *git.Repository) {
 			if err != nil {
 				log.Fatalf("get file %s in %s was err: %+v", file.Name, c.Hash.String(), err)
 			}
-			log.Println("file '%s' content: %+v\n", file.Name, cts)
+			log.Printf("file '%s' content: %+v\n", file.Name, cts)
 			return nil
 		})
 		return nil

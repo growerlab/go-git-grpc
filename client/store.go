@@ -81,13 +81,7 @@ func (s *Store) EncodedObject(objectType plumbing.ObjectType, hash plumbing.Hash
 		return nil, errors.WithStack(err)
 	}
 
-	result := &EncodedObject{
-		ctx:            s.ctx,
-		client:         s.client,
-		repoPath:       s.repoPath,
-		uuid:           obj.UUID,
-		readonlyObject: buildReadonlyEncodedObject(obj),
-	}
+	result := buildEncodedObjectFromPB(s.ctx, s.client, s.repoPath, obj)
 	return result, nil
 }
 
@@ -326,11 +320,18 @@ func (s *Store) Module(name string) (storage.Storer, error) {
 	panic("implement me")
 }
 
-func buildReadonlyEncodedObject(obj *pb.EncodedObject) plumbing.EncodedObject {
+func buildEncodedObjectFromPB(ctx context.Context, client pb.StorerClient, repoPath string, obj *pb.EncodedObject) plumbing.EncodedObject {
 	typ, _ := plumbing.ParseObjectType(obj.Type)
-	return &ReadonlyEncodedObject{
-		hash: plumbing.NewHash(obj.Hash),
-		typ:  typ,
-		size: obj.GetSize(),
+
+	return &EncodedObject{
+		ctx:      ctx,
+		client:   client,
+		repoPath: repoPath,
+		uuid:     obj.UUID,
+		encodedObject: &FixableEncodedObject{
+			hash: plumbing.NewHash(obj.Hash),
+			typ:  typ,
+			size: obj.Size,
+		},
 	}
 }

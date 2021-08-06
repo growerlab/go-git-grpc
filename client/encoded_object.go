@@ -20,12 +20,12 @@ type EncodedObject struct {
 	repoPath string
 	uuid     string
 
-	readonlyObject plumbing.EncodedObject
+	encodedObject *FixableEncodedObject
 }
 
 func (e *EncodedObject) Hash() plumbing.Hash {
-	if e.readonlyObject != nil {
-		return e.readonlyObject.Hash()
+	if e.encodedObject != nil {
+		return e.encodedObject.Hash()
 	}
 
 	params := &pb.None{RepoPath: e.repoPath, UUID: e.uuid}
@@ -40,8 +40,8 @@ func (e *EncodedObject) Hash() plumbing.Hash {
 var UnknownObjectType plumbing.ObjectType = -126
 
 func (e *EncodedObject) Type() plumbing.ObjectType {
-	if e.readonlyObject != nil {
-		return e.readonlyObject.Type()
+	if e.encodedObject != nil {
+		return e.encodedObject.Type()
 	}
 
 	params := &pb.None{RepoPath: e.repoPath, UUID: e.uuid}
@@ -54,8 +54,8 @@ func (e *EncodedObject) Type() plumbing.ObjectType {
 }
 
 func (e *EncodedObject) SetType(objectType plumbing.ObjectType) {
-	if e.readonlyObject != nil {
-		e.readonlyObject.SetType(objectType)
+	if e.encodedObject != nil {
+		e.encodedObject.SetType(objectType)
 	}
 
 	params := &pb.Int{RepoPath: e.repoPath, UUID: e.uuid, Value: int32(objectType)}
@@ -67,8 +67,8 @@ func (e *EncodedObject) SetType(objectType plumbing.ObjectType) {
 }
 
 func (e *EncodedObject) Size() int64 {
-	if e.readonlyObject != nil {
-		return e.readonlyObject.Size()
+	if e.encodedObject != nil {
+		return e.encodedObject.Size()
 	}
 
 	params := &pb.None{RepoPath: e.repoPath, UUID: e.uuid}
@@ -81,8 +81,8 @@ func (e *EncodedObject) Size() int64 {
 }
 
 func (e *EncodedObject) SetSize(i int64) {
-	if e.readonlyObject != nil {
-		e.readonlyObject.SetSize(i)
+	if e.encodedObject != nil {
+		e.encodedObject.SetSize(i)
 	}
 
 	params := &pb.Int64{

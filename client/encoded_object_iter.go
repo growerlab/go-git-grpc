@@ -22,9 +22,6 @@ type EncodedObjectIter struct {
 
 	// 服务器端返回的iter none
 	none *pb.None
-
-	//
-	nextClient pb.Storer_EncodedObjectNextClient
 }
 
 func NewEncodedObjectIter(ctx context.Context, client pb.StorerClient, repoPath string, objectType plumbing.ObjectType) (*EncodedObjectIter, error) {
@@ -43,15 +40,7 @@ func NewEncodedObjectIter(ctx context.Context, client pb.StorerClient, repoPath 
 }
 
 func (c *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
-	var err error
-	if c.nextClient == nil {
-		c.nextClient, err = c.client.EncodedObjectNext(c.ctx, c.none)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	pbEncodedObject, err := c.nextClient.Recv()
+	pbEncodedObject, err := c.client.EncodedObjectNext(c.ctx, c.none)
 	if err == nil {
 		return nil, err
 	}

@@ -77,5 +77,7 @@ func (c *EncodedObjectIter) ForEach(f func(plumbing.EncodedObject) error) error 
 
 func (c *EncodedObjectIter) Close() {
 	_, err := c.client.EncodedObjectClose(c.ctx, c.none)
-	log.Printf("call EncodedObjectClose was err: %+v\n", err)
+	if err != nil {
+		log.Printf("call EncodedObjectClose was err: %+v\n", err)
+	}
 }

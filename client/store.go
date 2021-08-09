@@ -118,7 +118,11 @@ func (s *Store) Reference(name plumbing.ReferenceName) (*plumbing.Reference, err
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return plumbing.NewReferenceFromStrings(result.N, result.Target), nil
+	if len(result.Target) > 0 {
+		return plumbing.NewReferenceFromStrings(result.N, result.Target), nil
+	} else {
+		return plumbing.NewHashReference(plumbing.ReferenceName(result.N), plumbing.NewHash(result.H)), nil
+	}
 }
 
 func (s *Store) IterReferences() (storer.ReferenceIter, error) {
@@ -133,8 +137,13 @@ func (s *Store) IterReferences() (storer.ReferenceIter, error) {
 	refs := make([]*plumbing.Reference, 0, len(pbRefs.Refs))
 
 	for _, r := range pbRefs.Refs {
-		ref := plumbing.NewReferenceFromStrings(r.N, r.Target)
-		refs = append(refs, ref)
+		if len(r.Target) > 0 {
+			ref := plumbing.NewReferenceFromStrings(r.N, r.Target)
+			refs = append(refs, ref)
+		} else {
+			ref := plumbing.NewHashReference(plumbing.ReferenceName(r.N), plumbing.NewHash(r.H))
+			refs = append(refs, ref)
+		}
 	}
 
 	return storer.NewReferenceSliceIter(refs), nil

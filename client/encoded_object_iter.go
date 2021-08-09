@@ -2,7 +2,9 @@ package client
 
 import (
 	"context"
+	"io"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -48,7 +50,7 @@ func (c *EncodedObjectIter) Next() (plumbing.EncodedObject, error) {
 	return buildEncodedObjectFromPB(c.ctx, c.client, c.repoPath, pbEncodedObject), nil
 }
 
-func (c *EncodedObjectIter) ForEach(f func(plumbing.EncodedObject) error) error {
+func (c *EncodedObjectIter) ForEach(cb func(plumbing.EncodedObject) error) error {
 	eachClient, err := c.client.EncodedObjectForEach(c.ctx, c.none)
 	if err != nil {
 		return errors.WithStack(err)
@@ -64,11 +66,13 @@ func (c *EncodedObjectIter) ForEach(f func(plumbing.EncodedObject) error) error 
 		default:
 			obj, err := eachClient.Recv()
 			if err != nil {
-				cancel()
 				return err
 			}
-			err = f(buildEncodedObjectFromPB(c.ctx, c.client, c.repoPath, obj))
+			err = cb(buildEncodedObjectFromPB(c.ctx, c.client, c.repoPath, obj))
 			if err != nil {
+				if strings.Contains(err.Error(), io.EOF.Error()) {
+					continue
+				}
 				return err
 			}
 		}

@@ -1,10 +1,11 @@
 package server
 
 import (
+	"log"
 	"time"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/growerlab/go-git-grpc/common"
-
 	gocache "github.com/patrickmn/go-cache"
 )
 
@@ -49,6 +50,20 @@ func (c *ObjectCache) Get(uuid string) (Object, bool) {
 	return obj, true
 }
 
-func buildUUID() string {
+func buildUUID(obj plumbing.EncodedObject) string {
+	if obj == nil {
+		return common.ShortUUID()
+	}
+	switch obj.Type() {
+	case plumbing.CommitObject,
+		plumbing.TreeObject,
+		plumbing.BlobObject,
+		plumbing.TagObject:
+		return obj.Hash().String()
+	case plumbing.OFSDeltaObject:
+		log.Panic("==== 注意：这里暂时不知返回什么uuid")
+	case plumbing.REFDeltaObject:
+		log.Panic("==== 注意：这里暂时不知返回什么uuid")
+	}
 	return common.ShortUUID()
 }

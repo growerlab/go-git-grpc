@@ -15,7 +15,7 @@ import (
 )
 
 func (s *Store) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.UUID, error) {
-	obj := NewEncodedObject(ctx, buildUUID(), none.RepoPath, &plumbing.MemoryObject{})
+	obj := NewEncodedObject(ctx, buildUUID(nil), none.RepoPath, &plumbing.MemoryObject{})
 	s.putObject(obj)
 	return &pb.UUID{Value: obj.UUID()}, nil
 }
@@ -81,7 +81,7 @@ func (s *Store) EncodedObjectEntity(ctx context.Context, objEntity *pb.GetEncode
 			return err
 		}
 
-		newObj := NewEncodedObject(ctx, buildUUID(), repoPath, obj)
+		newObj := NewEncodedObject(ctx, buildUUID(obj), repoPath, obj)
 		s.putObject(newObj)
 
 		result = newObj.PBEncodeObject()
@@ -125,6 +125,7 @@ func (s *Store) EncodedObjectRWStream(stream pb.Storer_EncodedObjectRWStreamServ
 		return ErrNotFoundObject
 	}
 
+	// NOTE 这里加上同一个object对象不应该同时读写，所以不进行读写goroutine
 	switch first.Flag {
 	case pb.RWStream_READ:
 		reader, err := obj.Reader()
@@ -138,7 +139,7 @@ func (s *Store) EncodedObjectRWStream(stream pb.Storer_EncodedObjectRWStreamServ
 			var n int
 			n, err = reader.Read(buf)
 			if err == io.EOF {
-				return err
+				return nil
 			}
 			buf = buf[:n]
 			err = stream.Send(&pb.RWStream{
@@ -159,7 +160,7 @@ func (s *Store) EncodedObjectRWStream(stream pb.Storer_EncodedObjectRWStreamServ
 		for {
 			rw, err := stream.Recv()
 			if err == io.EOF {
-				return err
+				return nil
 			}
 			_, err = writer.Write(rw.Value)
 			if err != nil {

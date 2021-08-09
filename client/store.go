@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"strings"
 
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -78,6 +79,9 @@ func (s *Store) EncodedObject(objectType plumbing.ObjectType, hash plumbing.Hash
 	}
 	obj, err := s.client.EncodedObjectEntity(s.ctx, params)
 	if err != nil {
+		if strings.Contains(err.Error(), plumbing.ErrObjectNotFound.Error()) {
+			return nil, plumbing.ErrObjectNotFound
+		}
 		return nil, errors.WithStack(err)
 	}
 

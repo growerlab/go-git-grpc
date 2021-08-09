@@ -11,7 +11,7 @@ import (
 
 func (s *Store) NewEncodedObjectIter(ctx context.Context, tp *pb.ObjectType) (*pb.None, error) {
 	var (
-		uuid     = buildUUID()
+		uuid     = buildUUID(nil)
 		result   = &pb.None{UUID: uuid}
 		repoPath = tp.RepoPath
 	)
@@ -52,7 +52,7 @@ func (s *Store) EncodedObjectNext(ctx context.Context, none *pb.None) (*pb.Encod
 		return nil, err
 	}
 
-	newObj := NewEncodedObject(context.Background(), buildUUID(), repoPath, obj)
+	newObj := NewEncodedObject(context.Background(), buildUUID(obj), repoPath, obj)
 	s.putObject(newObj)
 
 	return newObj.PBEncodeObject(), nil
@@ -69,7 +69,7 @@ func (s *Store) EncodedObjectForEach(none *pb.None, stream pb.Storer_EncodedObje
 	}
 
 	err := iter.ForEach(func(object plumbing.EncodedObject) error {
-		obj := NewEncodedObject(context.Background(), buildUUID(), repoPath, object)
+		obj := NewEncodedObject(context.Background(), object.Hash().String(), repoPath, object)
 		s.putObject(obj)
 		return stream.Send(obj.PBEncodeObject())
 	})

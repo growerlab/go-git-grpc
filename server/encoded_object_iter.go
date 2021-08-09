@@ -12,7 +12,7 @@ import (
 func (s *Store) NewEncodedObjectIter(ctx context.Context, tp *pb.ObjectType) (*pb.None, error) {
 	var (
 		uuid     = buildUUID(nil)
-		result   = &pb.None{UUID: uuid}
+		result   = &pb.None{RepoPath: tp.RepoPath, UUID: uuid}
 		repoPath = tp.RepoPath
 	)
 

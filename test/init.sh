@@ -1,6 +1,6 @@
 #!/bin/bash
 
-baseDir=$GOPATH/src/github.com/growerlab/go-git-grpc/test
+baseDir=$GO_GIT_GRPC_TEST_DIR
 repoDir=$baseDir/testrepo_bare
 tmpRepoDir=/tmp/testrepo_bare
 
@@ -13,7 +13,7 @@ fi
 
 if [ ! -d $tmpRepoDir ]; then
     mkdir -p $tmpRepoDir
-    cd $tmpRepoDir
+    cd $tmpRepoDir || true
 
     git init
     git remote add origin $repoDir

@@ -35,7 +35,7 @@ func NewEncodedObjectIter(ctx context.Context, client pb.StorerClient, repoPath 
 		objectType: objectType,
 	}
 
-	t := &pb.ObjectType{Type: objectType.String()}
+	t := &pb.ObjectType{RepoPath: repoPath, Type: objectType.String()}
 
 	c.none, err = c.client.NewEncodedObjectIter(ctx, t)
 	return c, err

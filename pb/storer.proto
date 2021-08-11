@@ -259,7 +259,7 @@ message Hashs {
 
 message Reference {
   string RepoPath = 1;
-  bytes T = 2;
+  string T = 2;
   string N = 3;
   string H = 4;
   string Target = 5;

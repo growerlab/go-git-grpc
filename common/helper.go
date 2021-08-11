@@ -14,7 +14,7 @@ import (
 
 func BuildRefToPbRef(ref *plumbing.Reference) *pb.Reference {
 	result := &pb.Reference{
-		T:      []byte{byte(ref.Type())},
+		T:      ref.Type().String(),
 		N:      string(ref.Name()),
 		H:      ref.Hash().String(),
 		Target: string(ref.Target()),

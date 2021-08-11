@@ -129,6 +129,8 @@ func (s *Store) Reference(name plumbing.ReferenceName) (*plumbing.Reference, err
 	}
 }
 
+const symrefPrefix = "ref: "
+
 func (s *Store) IterReferences() (storer.ReferenceIter, error) {
 	params := &pb.None{
 		RepoPath: s.repoPath,
@@ -141,8 +143,9 @@ func (s *Store) IterReferences() (storer.ReferenceIter, error) {
 	refs := make([]*plumbing.Reference, 0, len(pbRefs.Refs))
 
 	for _, r := range pbRefs.Refs {
-		if len(r.Target) > 0 {
-			ref := plumbing.NewReferenceFromStrings(r.N, r.Target)
+		if r.T == plumbing.SymbolicReference.String() {
+			target := symrefPrefix + r.Target
+			ref := plumbing.NewReferenceFromStrings(r.N, target)
 			refs = append(refs, ref)
 		} else {
 			ref := plumbing.NewHashReference(plumbing.ReferenceName(r.N), plumbing.NewHash(r.H))

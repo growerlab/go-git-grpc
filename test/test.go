@@ -38,9 +38,9 @@ func main() {
 		panic(err)
 	}
 
-	// testReferences(repo)
+	testReferences(repo)
 	// testTags(repo)
-	testCommits(repo)
+	// testCommits(repo)
 	// tag下的文件列表
 	// testFileTreesInTag(repo, "v1.0")
 

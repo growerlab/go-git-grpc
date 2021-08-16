@@ -13,7 +13,13 @@ import (
 func (s *Store) SetReference(ctx context.Context, reference *pb.Reference) (*pb.None, error) {
 	var result = &pb.None{}
 	err := repo(s.root, reference.RepoPath, func(r *git.Repository) error {
-		ref := plumbing.NewReferenceFromStrings(reference.N, reference.Target)
+		var ref *plumbing.Reference
+		if len(reference.Target) > 0 {
+			ref = plumbing.NewReferenceFromStrings(reference.N, reference.Target)
+		} else {
+			ref = plumbing.NewHashReference(plumbing.ReferenceName(reference.N), plumbing.NewHash(reference.H))
+		}
+
 		err := r.Storer.SetReference(ref)
 		return errors.WithStack(err)
 	})

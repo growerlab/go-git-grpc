@@ -1,8 +1,11 @@
 package common
 
 import (
+	"bytes"
 	"encoding/json"
 	"time"
+
+	format "github.com/go-git/go-git/v5/plumbing/format/config"
 
 	"github.com/go-git/go-git/v5/config"
 
@@ -252,7 +255,17 @@ func BuildConfigFromPbConfig(cfg *config.Config) *pb.Config {
 }
 
 func BuildPbConfigFromConfig(cfg *pb.Config) *config.Config {
-	var result = &config.Config{}
+	var (
+		result = &config.Config{}
+		err    error
+	)
+
+	result.Raw = format.New()
+	err = json.NewDecoder(bytes.NewBuffer(cfg.Raw)).Decode(result.Raw)
+	if err != nil {
+		panic(err)
+	}
+
 	result.Core.IsBare = cfg.Core.IsBare
 	result.Core.CommentChar = cfg.Core.CommentChar
 	result.Core.Worktree = cfg.Core.Worktree
@@ -305,7 +318,7 @@ func BuildPbConfigFromConfig(cfg *pb.Config) *config.Config {
 		result.Branches[branch.Key] = &config.Branch{
 			Name:   br.Name,
 			Remote: br.Remote,
-			Merge:  plumbing.NewBranchReferenceName(br.Merge),
+			Merge:  plumbing.ReferenceName(br.Merge),
 			Rebase: br.Rebase,
 		}
 	}

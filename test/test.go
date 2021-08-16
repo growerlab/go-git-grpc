@@ -43,7 +43,7 @@ func main() {
 	// // tag下的文件列表
 	// testFileTreesInTag(repo, "v1.0")
 
-	testAddTag(repo, "v10.0")
+	// testAddTag(repo, "v10.0")
 	testAddBranch(repo, "master2")
 
 	time.Sleep(500 * time.Millisecond)
@@ -71,7 +71,7 @@ func testAddBranch(repo *git.Repository, branchName string) {
 	err := repo.CreateBranch(&config.Branch{
 		Name:   branchName,
 		Remote: "origin",
-		Merge:  "master",
+		Merge:  "", // plumbing.NewBranchReferenceName("master"),
 		Rebase: "",
 	})
 	if err != nil {

@@ -104,7 +104,12 @@ func (s *Store) HasEncodedObject(hash plumbing.Hash) error {
 }
 
 func (s *Store) EncodedObjectSize(hash plumbing.Hash) (int64, error) {
-	panic("implement me")
+	params := &pb.None{
+		RepoPath: s.repoPath,
+		UUID:     hash.String(),
+	}
+	n, err := s.client.EncodedObjectSize(s.ctx, params)
+	return n.Value, err
 }
 
 func (s *Store) SetReference(reference *plumbing.Reference) error {
@@ -120,7 +125,23 @@ func (s *Store) SetReference(reference *plumbing.Reference) error {
 }
 
 func (s *Store) CheckAndSetReference(new, old *plumbing.Reference) error {
-	panic("implement me")
+	params := &pb.SetReferenceParams{
+		RepoPath: s.repoPath,
+		New: &pb.Reference{
+			T:      new.Type().String(),
+			N:      new.Name().String(),
+			H:      new.Hash().String(),
+			Target: new.Target().String(),
+		},
+		Old: &pb.Reference{
+			T:      old.Type().String(),
+			N:      old.Name().String(),
+			H:      old.Hash().String(),
+			Target: old.Target().String(),
+		},
+	}
+	_, err := s.client.CheckAndSetReference(s.ctx, params)
+	return err
 }
 
 func (s *Store) Reference(name plumbing.ReferenceName) (*plumbing.Reference, error) {

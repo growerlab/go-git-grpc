@@ -6,12 +6,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-git/go-git/v5/plumbing/object"
-
-	gggrpc "github.com/growerlab/go-git-grpc"
-
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	gggrpc "github.com/growerlab/go-git-grpc"
 )
 
 func main() {
@@ -38,13 +37,46 @@ func main() {
 		panic(err)
 	}
 
-	testReferences(repo)
+	// testReferences(repo)
 	// testTags(repo)
 	// testCommits(repo)
-	// tag下的文件列表
+	// // tag下的文件列表
 	// testFileTreesInTag(repo, "v1.0")
 
+	testAddTag(repo, "v10.0")
+	testAddBranch(repo, "master2")
+
 	time.Sleep(500 * time.Millisecond)
+}
+
+func testAddTag(repo *git.Repository, tagName string) {
+	ref, err := repo.CreateTag(tagName, plumbing.NewHash("93450f0c98eeb96155cf8252ca9e07ca6c5ecbc2"),
+		&git.CreateTagOptions{
+			Tagger: &object.Signature{
+				Name:  "moli2",
+				Email: "mox2@out.com",
+				When:  time.Now(),
+			},
+			Message: "hello",
+			SignKey: nil,
+		},
+	)
+	if err != nil {
+		log.Fatalf("create tag was err: %+v", err)
+	}
+	log.Println("create tag: ", ref.String())
+}
+
+func testAddBranch(repo *git.Repository, branchName string) {
+	err := repo.CreateBranch(&config.Branch{
+		Name:   branchName,
+		Remote: "origin",
+		Merge:  "master",
+		Rebase: "",
+	})
+	if err != nil {
+		log.Fatalf("create branch was err: %+v", err)
+	}
 }
 
 func testFileTreesInTag(repo *git.Repository, tagName string) {
@@ -52,23 +84,33 @@ func testFileTreesInTag(repo *git.Repository, tagName string) {
 	if err != nil {
 		log.Fatalf("get trees was err:%+v", err)
 	}
+	var lastTree *object.Tree
 	iter.ForEach(func(t *object.Tree) error {
+		log.Printf("for each tag: %s \n", t.Hash.String())
+		lastTree = t
 		return nil
 	})
-	// tag, err := repo.Tag(tagName)
-	// if err != nil {
-	// 	log.Fatalf("get tag '%s' was err: %+v", tagName, err)
-	// }
-	// tree, err := repo.TreeObject(tag.Hash())
-	// if err != nil {
-	// 	log.Fatalf("get tree '%s' was err: %+v", tagName, err)
-	// }
-	// n := 0
-	// tree.Files().ForEach(func(file *object.File) error {
-	// 	n++
-	// 	log.Printf("file %s in tag '%s'", file.Name, tagName)
-	// 	return nil
-	// })
+
+	tag, err := repo.Tag(tagName)
+	if err != nil {
+		log.Fatalf("get tag '%s' was err: %+v", tagName, err)
+	}
+	log.Println("tag: ", tag.Strings())
+
+	realTag, err := repo.TagObject(tag.Hash())
+	if err != nil {
+		log.Fatalf("get tag err: %+v", err)
+	}
+
+	tree, err := realTag.Tree()
+	if err != nil {
+		log.Fatalf("get tree '%s' was err: %+v", tagName, err)
+	}
+
+	tree.Files().ForEach(func(file *object.File) error {
+		log.Printf("file %s in tag '%s'", file.Name, realTag.Name)
+		return nil
+	})
 }
 
 func testCommits(repo *git.Repository) {

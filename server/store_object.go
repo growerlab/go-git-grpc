@@ -71,10 +71,17 @@ func (s *Store) EncodedObjectEntity(ctx context.Context, objEntity *pb.GetEncode
 	var repoPath = objEntity.RepoPath
 
 	err := repo(s.root, objEntity.RepoPath, func(r *git.Repository) error {
-		objectType, err := plumbing.ParseObjectType(objEntity.Type)
-		if err != nil {
-			return errors.WithStack(err)
+		var (
+			objectType = plumbing.AnyObject
+			err        error
+		)
+		if objEntity.Type != objectType.String() {
+			objectType, err = plumbing.ParseObjectType(objEntity.Type)
+			if err != nil {
+				return errors.WithStack(err)
+			}
 		}
+
 		hash := plumbing.NewHash(objEntity.Hash)
 		obj, err := r.Storer.EncodedObject(objectType, hash)
 		if err != nil {

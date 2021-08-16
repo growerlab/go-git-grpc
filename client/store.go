@@ -81,6 +81,8 @@ func (s *Store) EncodedObject(objectType plumbing.ObjectType, hash plumbing.Hash
 	if err != nil {
 		if strings.Contains(err.Error(), plumbing.ErrObjectNotFound.Error()) {
 			return nil, plumbing.ErrObjectNotFound
+		} else if strings.Contains(err.Error(), plumbing.ErrInvalidType.Error()) {
+			return nil, plumbing.ErrInvalidType
 		}
 		return nil, errors.WithStack(err)
 	}
@@ -120,6 +122,9 @@ func (s *Store) Reference(name plumbing.ReferenceName) (*plumbing.Reference, err
 	}
 	result, err := s.client.GetReference(s.ctx, params)
 	if err != nil {
+		if strings.Contains(err.Error(), plumbing.ErrReferenceNotFound.Error()) {
+			return nil, plumbing.ErrReferenceNotFound
+		}
 		return nil, errors.WithStack(err)
 	}
 	if len(result.Target) > 0 {

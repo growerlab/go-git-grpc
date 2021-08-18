@@ -9,6 +9,7 @@ require (
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
+	github.com/reactivex/rxgo/v2 v2.5.0
 	github.com/stretchr/testify v1.7.0
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b // indirect
@@ -18,4 +19,5 @@ require (
 	google.golang.org/genproto v0.0.0-20210315173758-2651cd453018 // indirect
 	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.27.1
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

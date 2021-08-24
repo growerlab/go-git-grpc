@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/growerlab/go-git-grpc/server/git"
+
 	"github.com/pkg/errors"
 
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
-	"github.com/go-git/go-git/v5/utils/ioutil"
 	"github.com/growerlab/go-git-grpc/pb"
 )
 
@@ -24,7 +25,7 @@ type ServerCommand struct {
 	uploadPack pb.Door_ServeUploadPackServer
 }
 
-// Start 协议：第一个请求仅包含仓库路径，不传数据
+// Start 协议：第一个请求仅传git相关的参数，不传数据
 func (s *ServerCommand) Start() error {
 	firstReq, err := s.uploadPack.Recv()
 	if err != nil {
@@ -60,26 +61,28 @@ var _ pb.DoorServer = (*Door)(nil)
 type Door struct {
 }
 
+// git-upload-pack
 func (d *Door) ServeUploadPack(pack pb.Door_ServeUploadPackServer) error {
 	srvCmd := ServerCommand{uploadPack: pack}
 	if err := srvCmd.Start(); err != nil {
 		return err
 	}
 
-	ep, err := transport.NewEndpoint(srvCmd.repoPath)
-	if err != nil {
-		return err
+	git.Context{
+		Env:     nil,
+		Rpc:     "",
+		Args:    nil,
+		In:      nil,
+		Out:     nil,
+		RepoDir: "",
+		Timeout: 0,
 	}
+	git.Run()
 
-	// 在服务端不检测授权，由客户端做
-	s, err := server.DefaultServer.NewUploadPackSession(ep, nil)
-	if err != nil {
-		return fmt.Errorf("error creating session: %s", err)
-	}
-
-	return d.serveUploadPack(srvCmd, s)
+	return nil
 }
 
+// git-receive-pack
 func (d *Door) ServeReceivePack(pack pb.Door_ServeReceivePackServer) error {
 	srvCmd := ServerCommand{uploadPack: pack}
 	if err := srvCmd.Start(); err != nil {
@@ -97,32 +100,6 @@ func (d *Door) ServeReceivePack(pack pb.Door_ServeReceivePackServer) error {
 	}
 
 	return d.serveReceivePack(srvCmd, s)
-}
-
-func (d *Door) serveUploadPack(cmd ServerCommand, s transport.UploadPackSession) (err error) {
-	ioutil.CheckClose(cmd.Stdout, &err)
-
-	ar, err := s.AdvertisedReferences()
-	if err != nil {
-		return err
-	}
-
-	if err := ar.Encode(cmd.Stdout); err != nil {
-		return err
-	}
-
-	req := packp.NewUploadPackRequest()
-	if err := req.Decode(cmd.Stdin); err != nil {
-		return err
-	}
-
-	var resp *packp.UploadPackResponse
-	resp, err = s.UploadPack(context.TODO(), req)
-	if err != nil {
-		return err
-	}
-
-	return resp.Encode(cmd.Stdout)
 }
 
 func (d *Door) serveReceivePack(cmd ServerCommand, s transport.ReceivePackSession) error {

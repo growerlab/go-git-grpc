@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewClient(ctx context.Context, grpcServerAddr string, repoPath string) (*client.Store, io.Closer, error) {
+func NewStoreClient(ctx context.Context, grpcServerAddr string, repoPath string) (*client.Store, io.Closer, error) {
 	conn, err := grpc.DialContext(ctx,
 		grpcServerAddr,
 		grpc.WithInsecure(),
@@ -22,6 +22,23 @@ func NewClient(ctx context.Context, grpcServerAddr string, repoPath string) (*cl
 	}
 
 	c := pb.NewStorerClient(conn)
-	s := client.NewStore(ctx, repoPath, conn, c)
-	return s, s, nil
+	s := client.NewStore(ctx, repoPath, c)
+
+	return s, conn, nil
+}
+
+func NewDoorClient(ctx context.Context, grpcServerAddr string, repoPath string) (*client.Door, io.Closer, error) {
+	conn, err := grpc.DialContext(ctx,
+		grpcServerAddr,
+		grpc.WithInsecure(),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		err := errors.WithStack(err)
+		return nil, nil, err
+	}
+
+	c := pb.NewDoorClient(conn)
+	door := client.NewDoor(ctx, repoPath, c)
+	return door, conn, nil
 }

@@ -16,12 +16,11 @@ import (
 
 var _ storage.Storer = (*Store)(nil)
 
-func NewStore(ctx context.Context, repPath string, grpcConn *grpc.ClientConn, pbClient pb.StorerClient) *Store {
+func NewStore(ctx context.Context, repPath string, pbClient pb.StorerClient) *Store {
 	return &Store{
 		repoPath: repPath,
 		lastErr:  nil,
 		ctx:      ctx,
-		grpcConn: grpcConn,
 		client:   pbClient,
 	}
 }
@@ -33,11 +32,6 @@ type Store struct {
 	ctx      context.Context
 	grpcConn *grpc.ClientConn
 	client   pb.StorerClient
-}
-
-func (s *Store) Close() error {
-	err := s.grpcConn.Close()
-	return err
 }
 
 func (s *Store) NewEncodedObject() plumbing.EncodedObject {

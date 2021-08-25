@@ -10,5 +10,5 @@ func main() {
 
 	gggrpc.NewServer("./", ":8081")
 
-	gggrpc.NewClient(nil, "", "")
+	gggrpc.NewStoreClient(nil, "", "")
 }

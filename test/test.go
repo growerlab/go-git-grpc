@@ -26,7 +26,7 @@ func main() {
 
 	clientCtx := context.Background()
 	repoPath := "testrepo_bare"
-	store, closeFn, err := gggrpc.NewClient(clientCtx, "localhost:8081", repoPath)
+	store, closeFn, err := gggrpc.NewStoreClient(clientCtx, "localhost:8081", repoPath)
 	if err != nil {
 		panic(err)
 	}

@@ -27,7 +27,7 @@ func (s *ServerCommand) Start() error {
 	s.ctx = &git.Context{
 		Env:     common.ArrayToSet(firstReq.Env),
 		Rpc:     firstReq.RPC,
-		Args:    common.ArrayToEnvFormat(firstReq.Args),
+		Args:    common.ArrayToArgs(firstReq.Args),
 		In:      s,
 		Out:     s,
 		RepoDir: firstReq.Path,

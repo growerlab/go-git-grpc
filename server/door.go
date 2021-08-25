@@ -27,11 +27,11 @@ func (s *ServerCommand) Start() error {
 	s.ctx = &git.Context{
 		Env:      common.ArrayToSet(firstReq.Env),
 		Rpc:      firstReq.RPC,
-		Args:     common.ArrayToArgs(firstReq.Args),
+		Args:     firstReq.Args,
 		In:       s,
 		Out:      s,
 		RepoPath: firstReq.Path,
-		Timeout:  time.Duration(firstReq.Timeout) * time.Second,
+		Timeout:  time.Duration(firstReq.Timeout),
 	}
 	s.repoPath = firstReq.Path
 	return nil

@@ -27,7 +27,7 @@ func NewStoreClient(ctx context.Context, grpcServerAddr string, repoPath string)
 	return s, conn, nil
 }
 
-func NewDoorClient(ctx context.Context, grpcServerAddr string, repoPath string) (*client.Door, io.Closer, error) {
+func NewDoorClient(ctx context.Context, grpcServerAddr string) (*client.Door, io.Closer, error) {
 	conn, err := grpc.DialContext(ctx,
 		grpcServerAddr,
 		grpc.WithInsecure(),
@@ -39,6 +39,6 @@ func NewDoorClient(ctx context.Context, grpcServerAddr string, repoPath string) 
 	}
 
 	c := pb.NewDoorClient(conn)
-	door := client.NewDoor(ctx, repoPath, c)
+	door := client.NewDoor(ctx, c)
 	return door, conn, nil
 }

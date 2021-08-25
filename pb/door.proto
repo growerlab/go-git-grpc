@@ -13,8 +13,8 @@ message Request {
   string Path = 1;
   repeated KeyValue Env = 2;
   string RPC = 3;
-  repeated KeyValue Args = 4;
-  uint32 Timeout = 5;
+  repeated string Args = 4;
+  uint64 Timeout = 5;
   bytes Raw = 6;
 }
 

@@ -19,3 +19,14 @@ func ArrayToArgs(values []*pb.KeyValue) []string {
 	}
 	return result
 }
+
+func SetToPBSet(set map[string]string) []*pb.KeyValue {
+	result := make([]*pb.KeyValue, 0, len(set))
+	for k, v := range set {
+		result = append(result, &pb.KeyValue{
+			Key:   k,
+			Value: v,
+		})
+	}
+	return result
+}

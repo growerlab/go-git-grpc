@@ -5,13 +5,11 @@ import (
 	"context"
 	"io"
 
-	"github.com/go-git/go-git/v5/plumbing/storer"
-
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/pkg/errors"
-
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/growerlab/go-git-grpc/pb"
+	"github.com/pkg/errors"
 )
 
 func (s *Store) NewEncodedObject(ctx context.Context, none *pb.None) (*pb.UUID, error) {

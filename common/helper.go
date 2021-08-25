@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"time"
 
-	format "github.com/go-git/go-git/v5/plumbing/format/config"
-
 	"github.com/go-git/go-git/v5/config"
-
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
+	format "github.com/go-git/go-git/v5/plumbing/format/config"
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 	"github.com/growerlab/go-git-grpc/pb"
 )

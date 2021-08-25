@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
@@ -19,17 +20,17 @@ const (
 )
 
 type Context struct {
-	Env     map[string]string // 环境变量
-	Rpc     string            // git upload or receive
-	Args    []string          // args
-	In      io.Reader         // input
-	Out     io.Writer         // output
-	RepoDir string            // repo dir
+	Env      map[string]string // 环境变量
+	Rpc      string            // git upload or receive
+	Args     []string          // args
+	In       io.Reader         // input
+	Out      io.Writer         // output
+	RepoPath string            // repo dir
 
 	Timeout time.Duration // 命令执行时间，单位秒
 }
 
-func Run(params *Context) error {
+func Run(root string, params *Context) error {
 	if params.Timeout <= 0 {
 		params.Timeout = DefaultTimeout
 	}
@@ -54,7 +55,7 @@ func Run(params *Context) error {
 		cmd.Env = append(cmd.Env, os.Environ()...)
 	}
 
-	cmd.Dir = params.RepoDir
+	cmd.Dir = filepath.Join(root, params.RepoPath)
 	if params.In != nil {
 		cmd.Stdin = params.In
 	}

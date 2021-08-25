@@ -25,13 +25,13 @@ func (s *ServerCommand) Start() error {
 	}
 
 	s.ctx = &git.Context{
-		Env:     common.ArrayToSet(firstReq.Env),
-		Rpc:     firstReq.RPC,
-		Args:    common.ArrayToArgs(firstReq.Args),
-		In:      s,
-		Out:     s,
-		RepoDir: firstReq.Path,
-		Timeout: time.Duration(firstReq.Timeout) * time.Second,
+		Env:      common.ArrayToSet(firstReq.Env),
+		Rpc:      firstReq.RPC,
+		Args:     common.ArrayToArgs(firstReq.Args),
+		In:       s,
+		Out:      s,
+		RepoPath: firstReq.Path,
+		Timeout:  time.Duration(firstReq.Timeout) * time.Second,
 	}
 	s.repoPath = firstReq.Path
 	return nil
@@ -66,7 +66,7 @@ func (d *Door) ServeUploadPack(pack pb.Door_ServeUploadPackServer) error {
 		return err
 	}
 
-	return git.Run(srvCmd.ctx)
+	return git.Run(d.root, srvCmd.ctx)
 }
 
 // ServeReceivePack for git-receive-pack
@@ -75,7 +75,7 @@ func (d *Door) ServeReceivePack(pack pb.Door_ServeReceivePackServer) error {
 	if err := srvCmd.Start(); err != nil {
 		return err
 	}
-	return git.Run(srvCmd.ctx)
+	return git.Run(d.root, srvCmd.ctx)
 }
 
 func (d *Door) mustEmbedUnimplementedDoorServer() {}

@@ -56,7 +56,14 @@ func (s *ServerCommand) Close() error {
 
 var _ pb.DoorServer = (*Door)(nil)
 
+func NewDoor(root string) *Door {
+	return &Door{
+		root: root,
+	}
+}
+
 type Door struct {
+	root string
 }
 
 // ServeUploadPack for git-upload-pack

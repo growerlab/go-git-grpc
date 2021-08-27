@@ -1,15 +1,16 @@
 package client
 
 import (
+	"bufio"
 	"context"
 	"io"
 	"log"
+	"sync"
 
 	"github.com/growerlab/go-git-grpc/common"
 	"github.com/growerlab/go-git-grpc/pb"
 	"github.com/growerlab/go-git-grpc/server/git"
 	"github.com/pkg/errors"
-	"github.com/reactivex/rxgo/v2"
 )
 
 type Door struct {
@@ -26,44 +27,84 @@ func NewDoor(ctx context.Context, pbClient pb.DoorClient) *Door {
 }
 
 func (d *Door) ServeReceivePack(params *git.Context) error {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Printf("ServeReceivePack panic: %+v", e)
+		}
+	}()
+
 	receivePack, err := d.client.ServeReceivePack(d.ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	receiver := rxgo.Start([]rxgo.Supplier{BytesReaderSupplier(params.In)}).ForEach(func(i interface{}) {
-		if buf, ok := i.([]byte); ok {
-			err = receivePack.Send(&pb.Request{Raw: buf})
-			log.Printf("send msg to door server was err: %+v\n", err)
-		}
-	}, func(err error) {
-		log.Printf("reader msg was err: %+v\n", err)
-	}, func() {})
-
-	sender := rxgo.Start([]rxgo.Supplier{ReceivePackSupplier(receivePack)}).ForEach(func(i interface{}) {
-		if buf, ok := i.([]byte); ok {
-			_, err = params.Out.Write(buf)
-			log.Printf("write msg to Out was err: %+v\n", err)
-		}
-	}, func(err error) {
-		log.Printf("recevie pack was err: %+v", err)
-	}, func() {})
-
-	<-receiver
-	<-sender
-	return nil
+	if err = d.sendContextPack(receivePack, params); err != nil {
+		return err
+	}
+	return d.copy(receivePack, params.In, params.Out)
 }
 
 func (d *Door) ServeUploadPack(params *git.Context) error {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Printf("ServeReceivePack panic: %+v", e)
+		}
+	}()
+
 	uploadPack, err := d.client.ServeUploadPack(d.ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	return nil
+	if err = d.sendContextPack(uploadPack, params); err != nil {
+		return err
+	}
+	return d.copy(uploadPack, params.In, params.Out)
 }
 
-func (d *Door) sendInitPack(params *git.Context) {
+func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		scanner := bufio.NewScanner(in)
+		for scanner.Scan() {
+			err = pipe.Send(&pb.Request{Raw: scanner.Bytes()})
+			if err != nil {
+				log.Printf("read: %+v\n", err)
+				break
+			}
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			var resp *pb.Response
+			resp, err = pipe.Recv()
+			if err != nil {
+				log.Printf("receive: %+v\n", err)
+				break
+			}
+			_, err = out.Write(resp.Raw)
+			if err != nil {
+				log.Printf("write: %+v\n", err)
+				break
+			}
+		}
+	}()
+
+	wg.Wait()
+	return err
+}
+
+type clientStream interface {
+	Send(*pb.Request) error
+	Recv() (*pb.Response, error)
+}
+
+func (d *Door) sendContextPack(pack clientStream, params *git.Context) error {
 	firstReq := &pb.Request{
 		Path:    params.RepoPath,
 		Env:     common.SetToPBSet(params.Env),
@@ -72,30 +113,6 @@ func (d *Door) sendInitPack(params *git.Context) {
 		Timeout: uint64(params.Timeout),
 		Raw:     nil,
 	}
-	err = receivePack.Send(firstReq)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-}
-
-func ReceivePackSupplier(receivePack pb.Door_ServeReceivePackClient) rxgo.Supplier {
-	return func(ctx context.Context) rxgo.Item {
-		pack, err := receivePack.Recv()
-		if err != nil {
-			return rxgo.Error(err)
-		}
-		return rxgo.Of(pack.Raw)
-	}
-}
-
-func BytesReaderSupplier(reader io.Reader) rxgo.Supplier {
-	return func(ctx context.Context) rxgo.Item {
-		// 也许未来某个时刻需要引入 bytes pool
-		var buf = make([]byte, 1024)
-		_, err := io.ReadFull(reader, buf)
-		if err != nil {
-			return rxgo.Error(err)
-		}
-		return rxgo.Of(buf)
-	}
+	err := pack.Send(firstReq)
+	return errors.WithStack(err)
 }

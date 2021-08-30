@@ -2,6 +2,8 @@
 
 为go-git支持GRPC的能力
 
+- hulk 为 hooks 目录下的钩子程序
+
 #### 目标
 
 - 通过grpc远程调用go-git读取仓库信息

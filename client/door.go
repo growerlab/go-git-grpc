@@ -47,7 +47,7 @@ func (d *Door) ServeReceivePack(params *git.Context) error {
 func (d *Door) ServeUploadPack(params *git.Context) error {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Printf("ServeReceivePack panic: %+v", e)
+			log.Printf("ServeUploadPack panic: %+v", e)
 		}
 	}()
 

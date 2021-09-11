@@ -13,7 +13,7 @@ import (
 	gggrpc "github.com/growerlab/go-git-grpc"
 )
 
-func main() {
+func initServer() {
 	gitRoot := os.Getenv("GO_GIT_GRPC_TEST_DIR")
 
 	go func() {
@@ -23,6 +23,10 @@ func main() {
 		}
 	}()
 	time.Sleep(1 * time.Second)
+}
+
+func main() {
+	initServer()
 
 	clientCtx := context.Background()
 	repoPath := "testrepo_bare"
@@ -90,6 +94,7 @@ func testFileTreesInTag(repo *git.Repository, tagName string) {
 		lastTree = t
 		return nil
 	})
+	log.Printf("last tree: %s \n", lastTree.Hash.String())
 
 	tag, err := repo.Tag(tagName)
 	if err != nil {

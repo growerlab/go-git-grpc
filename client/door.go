@@ -7,7 +7,6 @@ import (
 	"log"
 	"sync"
 
-	"github.com/growerlab/go-git-grpc/common"
 	"github.com/growerlab/go-git-grpc/pb"
 	"github.com/growerlab/go-git-grpc/server/git"
 	"github.com/pkg/errors"
@@ -59,21 +58,29 @@ func (d *Door) ServeUploadPack(params *git.Context) error {
 	if err = d.sendContextPack(uploadPack, params); err != nil {
 		return err
 	}
+
 	return d.copy(uploadPack, params.In, params.Out)
 }
 
 func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) {
 	var wg sync.WaitGroup
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
+		if in == nil {
+			return
+		}
 		scanner := bufio.NewScanner(in)
 		for scanner.Scan() {
 			err = pipe.Send(&pb.Request{Raw: scanner.Bytes()})
 			if err != nil {
-				log.Printf("read: %+v\n", err)
+				log.Printf("read err: %+v\n", err)
 				break
 			}
+		}
+		if err := scanner.Err(); err != nil {
+			log.Printf("scan err: %+v\n", err)
 		}
 	}()
 
@@ -107,7 +114,7 @@ type clientStream interface {
 func (d *Door) sendContextPack(pack clientStream, params *git.Context) error {
 	firstReq := &pb.Request{
 		Path:    params.RepoPath,
-		Env:     common.SetToPBSet(params.Env),
+		Env:     params.Env,
 		RPC:     params.Rpc,
 		Args:    params.Args,
 		Timeout: uint64(params.Timeout),

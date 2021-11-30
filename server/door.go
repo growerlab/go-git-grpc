@@ -3,7 +3,6 @@ package server
 import (
 	"time"
 
-	"github.com/growerlab/go-git-grpc/common"
 	"github.com/growerlab/go-git-grpc/pb"
 	"github.com/growerlab/go-git-grpc/server/git"
 	"github.com/pkg/errors"
@@ -25,7 +24,7 @@ func (s *ServerCommand) Start() error {
 	}
 
 	s.ctx = &git.Context{
-		Env:      common.ArrayToSet(firstReq.Env),
+		Env:      firstReq.Env,
 		Rpc:      firstReq.RPC,
 		Args:     firstReq.Args,
 		In:       s,
@@ -63,10 +62,12 @@ func NewDoor(root string) *Door {
 }
 
 type Door struct {
+	*pb.UnimplementedDoorServer
 	root string
 }
 
 // ServeUploadPack for git-upload-pack
+// 用户请求pull操作时，对于git来说，就是upload操作
 func (d *Door) ServeUploadPack(pack pb.Door_ServeUploadPackServer) error {
 	srvCmd := ServerCommand{uploadPack: pack}
 	if err := srvCmd.Start(); err != nil {
@@ -77,6 +78,7 @@ func (d *Door) ServeUploadPack(pack pb.Door_ServeUploadPackServer) error {
 }
 
 // ServeReceivePack for git-receive-pack
+// 用户请求push操作时，对于git来说，就是receive操作
 func (d *Door) ServeReceivePack(pack pb.Door_ServeReceivePackServer) error {
 	srvCmd := ServerCommand{uploadPack: pack}
 	if err := srvCmd.Start(); err != nil {

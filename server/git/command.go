@@ -2,7 +2,6 @@ package git
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -20,12 +19,12 @@ const (
 )
 
 type Context struct {
-	Env      map[string]string // 环境变量
-	Rpc      string            // git upload or receive
-	Args     []string          // args
-	In       io.Reader         // input
-	Out      io.Writer         // output
-	RepoPath string            // repo dir
+	Env      []string  // 环境变量 key=value
+	Rpc      string    // git upload or receive
+	Args     []string  // args
+	In       io.Reader // input
+	Out      io.Writer // output
+	RepoPath string    // repo dir
 
 	Timeout time.Duration // 命令执行时间，单位秒
 }
@@ -49,8 +48,8 @@ func Run(root string, params *Context) error {
 	if len(params.Env) > 0 {
 		systemEnvs := os.Environ()
 		cmd.Env = make([]string, 0, len(params.Env)+len(systemEnvs))
-		for k, v := range params.Env {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+		for _, v := range params.Env {
+			cmd.Env = append(cmd.Env, v)
 		}
 		cmd.Env = append(cmd.Env, os.Environ()...)
 	}
@@ -62,7 +61,7 @@ func Run(root string, params *Context) error {
 	if params.Out != nil {
 		cmd.Stdout = params.Out
 	}
-	cmd.Stderr = params.Out
+	cmd.Stderr = os.Stdout
 	err := cmd.Run()
 	return errors.WithStack(err)
 }

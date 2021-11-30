@@ -11,7 +11,7 @@ service Door {
 
 message Request {
   string Path = 1;
-  repeated KeyValue Env = 2;
+  repeated string Env = 2;
   string RPC = 3;
   repeated string Args = 4;
   uint64 Timeout = 5;
@@ -20,9 +20,4 @@ message Request {
 
 message Response {
   bytes Raw = 1;
-}
-
-message KeyValue {
-  string Key = 1;
-  string Value = 2;
 }

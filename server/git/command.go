@@ -13,38 +13,27 @@ import (
 
 const DefaultTimeout = 60 * time.Minute // 推送和拉取的最大执行时间
 
-const (
-	UploadPackServiceName  = "git-upload-pack"
-	ReceivePackServiceName = "git-receive-pack"
-)
-
 type Context struct {
 	Env      []string  // 环境变量 key=value
-	Rpc      string    // git upload or receive
-	Args     []string  // args
-	In       io.Reader // input
-	Out      io.Writer // output
+	GitBin   string    // git binary
+	Args     []string  // git args
+	In       io.Reader // git input
+	Out      io.Writer // git output
 	RepoPath string    // repo dir
 
-	Timeout time.Duration // 命令执行时间，单位秒
+	Deadline time.Duration // 命令执行时间，单位秒
 }
 
 func Run(root string, params *Context) error {
-	if params.Timeout <= 0 {
-		params.Timeout = DefaultTimeout
+	if params.Deadline <= 0 {
+		params.Deadline = DefaultTimeout
 	}
 
 	// deadline
-	cmdCtx, cancel := context.WithTimeout(context.Background(), params.Timeout)
+	cmdCtx, cancel := context.WithTimeout(context.Background(), params.Deadline)
 	defer cancel()
 
-	switch params.Rpc {
-	case ReceivePackServiceName, UploadPackServiceName:
-	default:
-		return errors.Errorf("invalid rpc '%s'", params.Rpc)
-	}
-
-	cmd := exec.CommandContext(cmdCtx, params.Rpc, params.Args...)
+	cmd := exec.CommandContext(cmdCtx, params.GitBin, params.Args...)
 	if len(params.Env) > 0 {
 		systemEnvs := os.Environ()
 		cmd.Env = make([]string, 0, len(params.Env)+len(systemEnvs))

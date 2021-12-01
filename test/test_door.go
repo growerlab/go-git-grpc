@@ -52,14 +52,15 @@ func testUploadCommand(door *client.Door) error {
 
 	cmd := &git.Context{
 		Env:      []string{""},
-		Rpc:      "git-upload-pack",
-		Args:     []string{"--advertise-refs", "."},
+		GitBin:   "git",
+		Args:     []string{"upload-pack", "--advertise-refs", "."},
 		RepoPath: repoPath,
 		In:       &in,
 		Out:      &out,
+		Deadline: 10 * time.Second,
 	}
 
-	if err := door.ServeUploadPack(cmd); err != nil {
+	if err := door.RunGit(cmd); err != nil {
 		return err
 	}
 

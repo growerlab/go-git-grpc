@@ -9,34 +9,34 @@ import (
 
 // ServerCommand is used for a single server command execution.
 type ServerCommand struct {
-	repoPath   string
-	uploadPack pb.Door_ServeUploadPackServer
+	repoPath     string
+	gitBinServer pb.Door_RunGitServer
 
 	ctx *git.Context
 }
 
 // Start 协议：第一个请求仅传git相关的参数，不传数据
 func (s *ServerCommand) Start() error {
-	firstReq, err := s.uploadPack.Recv()
+	firstReq, err := s.gitBinServer.Recv()
 	if err != nil {
 		return err
 	}
 
 	s.ctx = &git.Context{
 		Env:      firstReq.Env,
-		Rpc:      firstReq.RPC,
+		GitBin:   firstReq.GitBin,
 		Args:     firstReq.Args,
 		In:       s,
 		Out:      s,
 		RepoPath: firstReq.Path,
-		Timeout:  time.Duration(firstReq.Timeout),
+		Deadline: time.Duration(firstReq.Deadline),
 	}
 	s.repoPath = firstReq.Path
 	return nil
 }
 
 func (s *ServerCommand) Read(p []byte) (n int, err error) {
-	req, err := s.uploadPack.Recv()
+	req, err := s.gitBinServer.Recv()
 	if err != nil {
 		if req == nil {
 			return 0, err
@@ -47,7 +47,7 @@ func (s *ServerCommand) Read(p []byte) (n int, err error) {
 }
 
 func (s *ServerCommand) Write(p []byte) (n int, err error) {
-	err = s.uploadPack.Send(&pb.Response{Raw: p})
+	err = s.gitBinServer.Send(&pb.Response{Raw: p})
 	return len(p), err
 }
 
@@ -70,22 +70,12 @@ type Door struct {
 
 // ServeUploadPack for git-upload-pack
 // 用户请求pull操作时，对于git来说，就是upload操作
-func (d *Door) ServeUploadPack(pack pb.Door_ServeUploadPackServer) error {
-	srvCmd := ServerCommand{uploadPack: pack}
+func (d *Door) RunGit(pack pb.Door_RunGitServer) error {
+	srvCmd := ServerCommand{gitBinServer: pack}
 	if err := srvCmd.Start(); err != nil {
 		return err
 	}
 
-	return git.Run(d.root, srvCmd.ctx)
-}
-
-// ServeReceivePack for git-receive-pack
-// 用户请求push操作时，对于git来说，就是receive操作
-func (d *Door) ServeReceivePack(pack pb.Door_ServeReceivePackServer) error {
-	srvCmd := ServerCommand{uploadPack: pack}
-	if err := srvCmd.Start(); err != nil {
-		return err
-	}
 	return git.Run(d.root, srvCmd.ctx)
 }
 

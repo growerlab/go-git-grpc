@@ -18,8 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DoorClient interface {
-	ServeUploadPack(ctx context.Context, opts ...grpc.CallOption) (Door_ServeUploadPackClient, error)
-	ServeReceivePack(ctx context.Context, opts ...grpc.CallOption) (Door_ServeReceivePackClient, error)
+	RunGit(ctx context.Context, opts ...grpc.CallOption) (Door_RunGitClient, error)
 }
 
 type doorClient struct {
@@ -30,61 +29,30 @@ func NewDoorClient(cc grpc.ClientConnInterface) DoorClient {
 	return &doorClient{cc}
 }
 
-func (c *doorClient) ServeUploadPack(ctx context.Context, opts ...grpc.CallOption) (Door_ServeUploadPackClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Door_ServiceDesc.Streams[0], "/pb.Door/ServeUploadPack", opts...)
+func (c *doorClient) RunGit(ctx context.Context, opts ...grpc.CallOption) (Door_RunGitClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Door_ServiceDesc.Streams[0], "/pb.Door/RunGit", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &doorServeUploadPackClient{stream}
+	x := &doorRunGitClient{stream}
 	return x, nil
 }
 
-type Door_ServeUploadPackClient interface {
+type Door_RunGitClient interface {
 	Send(*Request) error
 	Recv() (*Response, error)
 	grpc.ClientStream
 }
 
-type doorServeUploadPackClient struct {
+type doorRunGitClient struct {
 	grpc.ClientStream
 }
 
-func (x *doorServeUploadPackClient) Send(m *Request) error {
+func (x *doorRunGitClient) Send(m *Request) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *doorServeUploadPackClient) Recv() (*Response, error) {
-	m := new(Response)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *doorClient) ServeReceivePack(ctx context.Context, opts ...grpc.CallOption) (Door_ServeReceivePackClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Door_ServiceDesc.Streams[1], "/pb.Door/ServeReceivePack", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &doorServeReceivePackClient{stream}
-	return x, nil
-}
-
-type Door_ServeReceivePackClient interface {
-	Send(*Request) error
-	Recv() (*Response, error)
-	grpc.ClientStream
-}
-
-type doorServeReceivePackClient struct {
-	grpc.ClientStream
-}
-
-func (x *doorServeReceivePackClient) Send(m *Request) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *doorServeReceivePackClient) Recv() (*Response, error) {
+func (x *doorRunGitClient) Recv() (*Response, error) {
 	m := new(Response)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -96,8 +64,7 @@ func (x *doorServeReceivePackClient) Recv() (*Response, error) {
 // All implementations must embed UnimplementedDoorServer
 // for forward compatibility
 type DoorServer interface {
-	ServeUploadPack(Door_ServeUploadPackServer) error
-	ServeReceivePack(Door_ServeReceivePackServer) error
+	RunGit(Door_RunGitServer) error
 	mustEmbedUnimplementedDoorServer()
 }
 
@@ -105,11 +72,8 @@ type DoorServer interface {
 type UnimplementedDoorServer struct {
 }
 
-func (UnimplementedDoorServer) ServeUploadPack(Door_ServeUploadPackServer) error {
-	return status.Errorf(codes.Unimplemented, "method ServeUploadPack not implemented")
-}
-func (UnimplementedDoorServer) ServeReceivePack(Door_ServeReceivePackServer) error {
-	return status.Errorf(codes.Unimplemented, "method ServeReceivePack not implemented")
+func (UnimplementedDoorServer) RunGit(Door_RunGitServer) error {
+	return status.Errorf(codes.Unimplemented, "method RunGit not implemented")
 }
 func (UnimplementedDoorServer) mustEmbedUnimplementedDoorServer() {}
 
@@ -124,51 +88,25 @@ func RegisterDoorServer(s grpc.ServiceRegistrar, srv DoorServer) {
 	s.RegisterService(&Door_ServiceDesc, srv)
 }
 
-func _Door_ServeUploadPack_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(DoorServer).ServeUploadPack(&doorServeUploadPackServer{stream})
+func _Door_RunGit_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DoorServer).RunGit(&doorRunGitServer{stream})
 }
 
-type Door_ServeUploadPackServer interface {
+type Door_RunGitServer interface {
 	Send(*Response) error
 	Recv() (*Request, error)
 	grpc.ServerStream
 }
 
-type doorServeUploadPackServer struct {
+type doorRunGitServer struct {
 	grpc.ServerStream
 }
 
-func (x *doorServeUploadPackServer) Send(m *Response) error {
+func (x *doorRunGitServer) Send(m *Response) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *doorServeUploadPackServer) Recv() (*Request, error) {
-	m := new(Request)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func _Door_ServeReceivePack_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(DoorServer).ServeReceivePack(&doorServeReceivePackServer{stream})
-}
-
-type Door_ServeReceivePackServer interface {
-	Send(*Response) error
-	Recv() (*Request, error)
-	grpc.ServerStream
-}
-
-type doorServeReceivePackServer struct {
-	grpc.ServerStream
-}
-
-func (x *doorServeReceivePackServer) Send(m *Response) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *doorServeReceivePackServer) Recv() (*Request, error) {
+func (x *doorRunGitServer) Recv() (*Request, error) {
 	m := new(Request)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -185,14 +123,8 @@ var Door_ServiceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "ServeUploadPack",
-			Handler:       _Door_ServeUploadPack_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-		{
-			StreamName:    "ServeReceivePack",
-			Handler:       _Door_ServeReceivePack_Handler,
+			StreamName:    "RunGit",
+			Handler:       _Door_RunGit_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

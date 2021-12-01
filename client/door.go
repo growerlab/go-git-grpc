@@ -26,41 +26,23 @@ func NewDoor(ctx context.Context, pbClient pb.DoorClient) *Door {
 	return door
 }
 
-func (d *Door) ServeReceivePack(params *git.Context) error {
-	defer func() {
-		if e := recover(); e != nil {
-			log.Printf("ServeReceivePack panic: %+v", e)
-		}
-	}()
-
-	receivePack, err := d.client.ServeReceivePack(d.ctx)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if err = d.sendContextPack(receivePack, params); err != nil {
-		return err
-	}
-	return d.copy(receivePack, params.In, params.Out)
-}
-
-func (d *Door) ServeUploadPack(params *git.Context) error {
+func (d *Door) RunGit(params *git.Context) error {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Printf("ServeUploadPack panic: %+v", e)
 		}
 	}()
 
-	uploadPack, err := d.client.ServeUploadPack(d.ctx)
+	runGit, err := d.client.RunGit(d.ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	if err = d.sendContextPack(uploadPack, params); err != nil {
+	if err = d.sendContextPack(runGit, params); err != nil {
 		return err
 	}
 
-	return d.copy(uploadPack, params.In, params.Out)
+	return d.copy(runGit, params.In, params.Out)
 }
 
 func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) {
@@ -106,7 +88,7 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 	}()
 
 	wg.Wait()
-	return err
+	return
 }
 
 type clientStream interface {
@@ -116,12 +98,12 @@ type clientStream interface {
 
 func (d *Door) sendContextPack(pack clientStream, params *git.Context) error {
 	firstReq := &pb.Request{
-		Path:    params.RepoPath,
-		Env:     params.Env,
-		RPC:     params.Rpc,
-		Args:    params.Args,
-		Timeout: uint64(params.Timeout),
-		Raw:     nil,
+		Path:     params.RepoPath,
+		Env:      params.Env,
+		GitBin:   params.GitBin,
+		Args:     params.Args,
+		Deadline: uint64(params.Deadline),
+		Raw:      nil,
 	}
 	err := pack.Send(firstReq)
 	return errors.WithStack(err)

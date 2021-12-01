@@ -2,6 +2,7 @@ package client
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"io"
 	"log"
@@ -64,8 +65,8 @@ func (d *Door) ServeUploadPack(params *git.Context) error {
 
 func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) {
 	var wg sync.WaitGroup
-	wg.Add(1)
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		if in == nil {
@@ -79,9 +80,7 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 				break
 			}
 		}
-		if err := scanner.Err(); err != nil {
-			log.Printf("scan err: %+v\n", err)
-		}
+		log.Printf("scan is done.\n")
 	}()
 
 	wg.Add(1)
@@ -99,7 +98,11 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 				log.Printf("write: %+v\n", err)
 				break
 			}
+			if bytes.HasSuffix(resp.Raw, []byte("0000")) {
+				return
+			}
 		}
+		log.Printf("recv is done.\n")
 	}()
 
 	wg.Wait()

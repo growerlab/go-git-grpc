@@ -5,7 +5,6 @@ import (
 
 	"github.com/growerlab/go-git-grpc/pb"
 	"github.com/growerlab/go-git-grpc/server/git"
-	"github.com/pkg/errors"
 )
 
 // ServerCommand is used for a single server command execution.
@@ -20,7 +19,7 @@ type ServerCommand struct {
 func (s *ServerCommand) Start() error {
 	firstReq, err := s.uploadPack.Recv()
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	s.ctx = &git.Context{
@@ -39,14 +38,17 @@ func (s *ServerCommand) Start() error {
 func (s *ServerCommand) Read(p []byte) (n int, err error) {
 	req, err := s.uploadPack.Recv()
 	if err != nil {
-		return len(req.Raw), errors.WithStack(err)
+		if req == nil {
+			return 0, err
+		}
+		return len(req.Raw), err
 	}
 	return copy(p, req.Raw), nil
 }
 
 func (s *ServerCommand) Write(p []byte) (n int, err error) {
 	err = s.uploadPack.Send(&pb.Response{Raw: p})
-	return len(p), errors.WithStack(err)
+	return len(p), err
 }
 
 func (s *ServerCommand) Close() error {

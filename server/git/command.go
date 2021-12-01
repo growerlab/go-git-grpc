@@ -19,12 +19,12 @@ const (
 )
 
 type Context struct {
-	Env      []string  // 环境变量 key=value
-	Rpc      string    // git upload or receive
-	Args     []string  // args
-	In       io.Reader // input
-	Out      io.Writer // output
-	RepoPath string    // repo dir
+	Env      []string      // 环境变量 key=value
+	Rpc      string        // git upload or receive
+	Args     []string      // args
+	In       io.ReadCloser // input
+	Out      io.Writer     // output
+	RepoPath string        // repo dir
 
 	Timeout time.Duration // 命令执行时间，单位秒
 }
@@ -62,6 +62,21 @@ func Run(root string, params *Context) error {
 		cmd.Stdout = params.Out
 	}
 	cmd.Stderr = os.Stdout
+	go func() {
+		for {
+			select {
+			case <-cmdCtx.Done():
+				return
+			case <-time.After(time.Second):
+				if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
+					if params.In != nil {
+						_ = params.In.Close()
+					}
+					return
+				}
+			}
+		}
+	}()
 	err := cmd.Run()
 	return errors.WithStack(err)
 }

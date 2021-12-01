@@ -1,11 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
-	"strings"
 	"time"
 
 	gggrpc "github.com/growerlab/go-git-grpc"
@@ -48,15 +47,15 @@ func main() {
 
 func testUploadCommand(door *client.Door) error {
 	// 测试 git-upload-pack
-	in := io.NopCloser(strings.NewReader(""))
-	out := strings.Builder{}
+	in := bytes.Buffer{}
+	out := bytes.Buffer{}
 
 	cmd := &git.Context{
 		Env:      []string{""},
 		Rpc:      "git-upload-pack",
 		Args:     []string{"--advertise-refs", "."},
 		RepoPath: repoPath,
-		In:       in,
+		In:       &in,
 		Out:      &out,
 	}
 

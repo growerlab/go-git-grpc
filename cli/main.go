@@ -8,7 +8,7 @@ import (
 func main() {
 	git.Open(nil, nil)
 
-	gggrpc.NewServer("./", ":8081")
+	gggrpc.NewServer("./", ":9001")
 
 	gggrpc.NewStoreClient(nil, "", "")
 }

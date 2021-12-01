@@ -20,7 +20,7 @@ func initServer() {
 	gitRoot := os.Getenv("GO_GIT_GRPC_TEST_DIR")
 
 	go func() {
-		err := gggrpc.NewServer(gitRoot, "localhost:8081")
+		err := gggrpc.NewServer(gitRoot, "localhost:9001")
 		if err != nil {
 			panic(err)
 		}
@@ -31,7 +31,7 @@ func initServer() {
 func main() {
 	initServer()
 
-	door, closeFn, err := gggrpc.NewDoorClient(context.Background(), "localhost:8081")
+	door, closeFn, err := gggrpc.NewDoorClient(context.Background(), "localhost:9001")
 	if err != nil {
 		panic(err)
 	}

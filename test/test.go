@@ -17,7 +17,7 @@ func initServer() {
 	gitRoot := os.Getenv("GO_GIT_GRPC_TEST_DIR")
 
 	go func() {
-		err := gggrpc.NewServer(gitRoot, "localhost:8081")
+		err := gggrpc.NewServer(gitRoot, "localhost:9001")
 		if err != nil {
 			panic(err)
 		}
@@ -30,7 +30,7 @@ func main() {
 
 	clientCtx := context.Background()
 	repoPath := "testrepo_bare"
-	store, closeFn, err := gggrpc.NewStoreClient(clientCtx, "localhost:8081", repoPath)
+	store, closeFn, err := gggrpc.NewStoreClient(clientCtx, "localhost:9001", repoPath)
 	if err != nil {
 		panic(err)
 	}

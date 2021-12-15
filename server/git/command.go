@@ -3,6 +3,7 @@ package git
 import (
 	"context"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -63,16 +64,15 @@ func Run(root string, params *Context, fn gitDoneFunc) error {
 			case <-cmdCtx.Done():
 				fn(cmdCtx.Err())
 				return
-			case <-time.After(time.Second):
-				if cmd.ProcessState != nil || cmd.ProcessState.Exited() {
+			case <-time.After(time.Millisecond * 100):
+				if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
 					fn(nil)
 					return
 				}
-			default:
-				time.Sleep(time.Second)
 			}
 		}
 	}()
 	err = cmd.Wait()
+	log.Println("git command done")
 	return errors.WithStack(err)
 }

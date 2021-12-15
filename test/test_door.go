@@ -65,6 +65,7 @@ func testUploadCommand(door *client.Door) error {
 	}
 
 	fmt.Println(out.String())
+	time.Sleep(time.Second)
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"time"
 
 	"github.com/growerlab/go-git-grpc/pb"
@@ -68,15 +69,19 @@ type Door struct {
 	root string
 }
 
-// ServeUploadPack for git-upload-pack
-// 用户请求pull操作时，对于git来说，就是upload操作
+// RunGit 执行git命令
 func (d *Door) RunGit(pack pb.Door_RunGitServer) error {
 	srvCmd := ServerCommand{gitBinServer: pack}
 	if err := srvCmd.Start(); err != nil {
 		return err
 	}
 
-	return git.Run(d.root, srvCmd.ctx)
+	return git.Run(d.root, srvCmd.ctx, func(err error) {
+		if err != nil {
+			log.Printf("git.Run error: %v\n", err)
+		}
+		_ = pack.Send(&pb.Response{Raw: []byte("\r\nEOF")})
+	})
 }
 
 func (d *Door) mustEmbedUnimplementedDoorServer() {}

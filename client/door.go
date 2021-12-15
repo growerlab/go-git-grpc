@@ -37,6 +37,7 @@ func (d *Door) RunGit(params *git.Context) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
+	defer runGit.CloseSend()
 
 	if err = d.sendContextPack(runGit, params); err != nil {
 		return err
@@ -56,7 +57,8 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 		}
 		scanner := bufio.NewScanner(in)
 		for scanner.Scan() {
-			err = pipe.Send(&pb.Request{Raw: scanner.Bytes()})
+			raw := scanner.Bytes()
+			err = pipe.Send(&pb.Request{Raw: raw})
 			if err != nil {
 				log.Printf("read err: %+v\n", err)
 				break
@@ -75,13 +77,13 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 				log.Printf("receive: %+v\n", err)
 				break
 			}
+			if bytes.HasSuffix(resp.Raw, []byte("\r\nEOF")) {
+				break
+			}
 			_, err = out.Write(resp.Raw)
 			if err != nil {
 				log.Printf("write: %+v\n", err)
 				break
-			}
-			if bytes.HasSuffix(resp.Raw, []byte("0000")) {
-				return
 			}
 		}
 		log.Printf("recv is done.\n")

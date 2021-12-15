@@ -13,6 +13,8 @@ import (
 
 const DefaultTimeout = 60 * time.Minute // 推送和拉取的最大执行时间
 
+type gitDoneFunc func(err error)
+
 type Context struct {
 	Env      []string  // 环境变量 key=value
 	GitBin   string    // git binary
@@ -24,7 +26,7 @@ type Context struct {
 	Deadline time.Duration // 命令执行时间，单位秒
 }
 
-func Run(root string, params *Context) error {
+func Run(root string, params *Context, fn gitDoneFunc) error {
 	if params.Deadline <= 0 {
 		params.Deadline = DefaultTimeout
 	}
@@ -51,6 +53,26 @@ func Run(root string, params *Context) error {
 		cmd.Stdout = params.Out
 	}
 	cmd.Stderr = os.Stdout
-	err := cmd.Run()
+	err := cmd.Start()
+	if err != nil {
+		return errors.Wrap(err, "start git command failed")
+	}
+	go func() {
+		for {
+			select {
+			case <-cmdCtx.Done():
+				fn(cmdCtx.Err())
+				return
+			case <-time.After(time.Second):
+				if cmd.ProcessState != nil || cmd.ProcessState.Exited() {
+					fn(nil)
+					return
+				}
+			default:
+				time.Sleep(time.Second)
+			}
+		}
+	}()
+	err = cmd.Wait()
 	return errors.WithStack(err)
 }

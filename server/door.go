@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"log"
 	"time"
 
@@ -13,7 +14,8 @@ type ServerCommand struct {
 	repoPath     string
 	gitBinServer pb.Door_RunGitServer
 
-	ctx *git.Context
+	readBuf *bytes.Buffer
+	ctx     *git.Context
 }
 
 // Start 协议：第一个请求仅传git相关的参数，不传数据
@@ -33,22 +35,32 @@ func (s *ServerCommand) Start() error {
 		Deadline: time.Duration(firstReq.Deadline),
 	}
 	s.repoPath = firstReq.Path
+	s.readBuf = bytes.NewBufferString("")
 
-	log.Println("---->")
-	log.Println(s.ctx.String())
+	log.Println("---->", s.ctx.String())
 
 	return nil
 }
 
 func (s *ServerCommand) Read(p []byte) (n int, err error) {
+	if s.readBuf.Len() > 0 {
+		return s.readBuf.Read(p)
+	}
 	req, err := s.gitBinServer.Recv()
 	if err != nil {
-		if req == nil {
-			return 0, err
-		}
-		return len(req.Raw), err
+		return 0, err
 	}
-	return copy(p, req.Raw), nil
+	if len(req.Raw) == 0 {
+		return 0, nil
+	}
+	n, err = s.readBuf.Write(req.Raw)
+	if err != nil {
+		return 0, err
+	}
+	if n > 0 {
+		return s.Read(p)
+	}
+	return 0, nil
 }
 
 func (s *ServerCommand) Write(p []byte) (n int, err error) {
@@ -80,12 +92,7 @@ func (d *Door) RunGit(pack pb.Door_RunGitServer) error {
 		return err
 	}
 
-	return git.Run(d.root, srvCmd.ctx, func(err error) {
-		if err != nil {
-			log.Printf("git.Run error: %v\n", err)
-		}
-		_ = pack.Send(&pb.Response{Raw: []byte("\r\nEOF")})
-	})
+	return git.Run(d.root, srvCmd.ctx)
 }
 
 func (d *Door) mustEmbedUnimplementedDoorServer() {}

@@ -48,7 +48,7 @@ func (p *Context) String() string {
 	return sb.String()
 }
 
-func Run(root string, params *Context, fn gitDoneFunc) error {
+func Run(root string, params *Context) error {
 	if params.Deadline <= 0 {
 		params.Deadline = DefaultTimeout
 	}
@@ -79,20 +79,7 @@ func Run(root string, params *Context, fn gitDoneFunc) error {
 	if err != nil {
 		return errors.Wrap(err, "start git command failed")
 	}
-	go func() {
-		for {
-			select {
-			case <-cmdCtx.Done():
-				fn(cmdCtx.Err())
-				return
-			case <-time.After(time.Millisecond * 100):
-				if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
-					fn(nil)
-					return
-				}
-			}
-		}
-	}()
+
 	err = cmd.Wait()
 	log.Println("git command done")
 	return errors.WithStack(err)

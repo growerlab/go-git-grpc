@@ -93,6 +93,10 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 	}()
 
 	wg.Wait()
+
+	if err == io.EOF {
+		err = nil // ignore
+	}
 	return
 }
 

@@ -37,7 +37,7 @@ func (d *Door) RunGit(params *git.Context) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	defer runGit.CloseSend()
+	// defer runGit.CloseSend()
 
 	if err = d.sendContextPack(runGit, params); err != nil {
 		return err
@@ -52,6 +52,8 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		defer log.Printf("scan is done.\n")
+
 		if in == nil {
 			return
 		}
@@ -64,12 +66,14 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 				break
 			}
 		}
-		log.Printf("scan is done.\n")
+		_ = pipe.CloseSend()
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		defer log.Printf("recv is done.\n")
+
 		for {
 			var resp *pb.Response
 			resp, err = pipe.Recv()
@@ -86,7 +90,6 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 				break
 			}
 		}
-		log.Printf("recv is done.\n")
 	}()
 
 	wg.Wait()
@@ -94,6 +97,7 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 }
 
 type clientStream interface {
+	CloseSend() error
 	Send(*pb.Request) error
 	Recv() (*pb.Response, error)
 }

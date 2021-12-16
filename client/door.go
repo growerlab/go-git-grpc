@@ -33,8 +33,6 @@ func (d *Door) RunGit(params *git.Context) error {
 		}
 	}()
 
-	log.Println(params.String())
-
 	runGit, err := d.client.RunGit(d.ctx)
 	if err != nil {
 		return errors.WithStack(err)

@@ -33,6 +33,10 @@ func (s *ServerCommand) Start() error {
 		Deadline: time.Duration(firstReq.Deadline),
 	}
 	s.repoPath = firstReq.Path
+
+	log.Println("---->")
+	log.Println(s.ctx.String())
+
 	return nil
 }
 

@@ -65,6 +65,9 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 					break
 				}
 			}
+			if n <= 0 {
+				continue
+			}
 			err = pipe.Send(&pb.Request{Raw: buf[:n]})
 			if err != nil {
 				log.Printf("read err: %+v\n", err)

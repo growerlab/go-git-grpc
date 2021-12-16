@@ -62,7 +62,7 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 			n, err := inReader.Read(buf)
 			if err != nil {
 				if err == io.EOF {
-					return
+					break
 				}
 			}
 			err = pipe.Send(&pb.Request{Raw: buf[:n]})

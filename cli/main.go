@@ -49,7 +49,7 @@ func main() {
 		panic(err)
 	}
 
-	log.Println("go-git-grpc running...")
+	log.Println("go-git-grpc running...", conf.Listen)
 	log.Println("git root:", root)
 
 	err = gggrpc.NewServer(root, conf.Listen)

@@ -74,6 +74,7 @@ func Run(root string, params *Context) error {
 	if params.Out != nil {
 		cmd.Stdout = params.Out
 	}
+
 	cmd.Stderr = os.Stdout
 	err := cmd.Start()
 	if err != nil {

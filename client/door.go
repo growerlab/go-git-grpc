@@ -2,7 +2,6 @@ package client
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"io"
 	"log"
@@ -57,10 +56,16 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 		if in == nil {
 			return
 		}
-		scanner := bufio.NewScanner(in)
-		for scanner.Scan() {
-			raw := scanner.Bytes()
-			err = pipe.Send(&pb.Request{Raw: raw})
+		inReader := bufio.NewReader(in)
+		buf := make([]byte, 512)
+		for {
+			n, err := inReader.Read(buf)
+			if err != nil {
+				if err == io.EOF {
+					return
+				}
+			}
+			err = pipe.Send(&pb.Request{Raw: buf[:n]})
 			if err != nil {
 				log.Printf("read err: %+v\n", err)
 				break
@@ -79,9 +84,6 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 			resp, err = pipe.Recv()
 			if err != nil {
 				log.Printf("receive: %+v\n", err)
-				break
-			}
-			if bytes.HasSuffix(resp.Raw, []byte("\r\nEOF")) {
 				break
 			}
 			_, err = out.Write(resp.Raw)

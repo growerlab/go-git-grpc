@@ -1,6 +1,6 @@
 default: &base
-  listen: 0.0.0.0:9001
-  git_repo_dir: /Users/moliliang/go/src/github.com/growerlab/mensa/test/repos
+  listen: "127.0.0.1:9001"
+  git_repo_dir: /Users/moli/go-project/src/github.com/growerlab/mensa/test/repos
 
 production:
   <<: *base

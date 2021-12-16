@@ -1,0 +1,12 @@
+default: &base
+  listen: 0.0.0.0:9001
+  git_repo_dir: test/repos
+
+production:
+  <<: *base
+
+test:
+  <<: *base
+
+dev:
+  <<: *base

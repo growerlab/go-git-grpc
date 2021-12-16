@@ -6,15 +6,53 @@ import (
 	"path/filepath"
 
 	gggrpc "github.com/growerlab/go-git-grpc"
+	"gopkg.in/yaml.v3"
 )
 
+const (
+	defaultConfig = "conf/config.yaml"
+)
+
+type Config struct {
+	Listen     string `yaml:"listen"`
+	GitRepoDir string `yaml:"git_repo_dir"`
+}
+
+var conf *Config
+
+func init() {
+	var envConfig = map[string]*Config{}
+	var ok bool
+	rawConfig, err := os.ReadFile(defaultConfig)
+	if err != nil {
+		panic(err)
+	}
+	err = yaml.Unmarshal(rawConfig, &envConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "dev"
+	}
+	if conf, ok = envConfig[env]; !ok {
+		panic("env " + env + " not found")
+	}
+}
+
 func main() {
-	gitRoot := filepath.Join(os.Getenv("GOPATH"), "src", "github.com/growerlab/mensa/test/repos")
+	var err error
+	root := conf.GitRepoDir
+	root, err = filepath.Abs(root)
+	if err != nil {
+		panic(err)
+	}
 
 	log.Println("go-git-grpc running...")
-	log.Println("git root:", gitRoot)
+	log.Println("git root:", root)
 
-	err := gggrpc.NewServer(gitRoot, ":9001")
+	err = gggrpc.NewServer(root, conf.Listen)
 	if err != nil {
 		panic(err)
 	}

@@ -1,14 +1,21 @@
 package main
 
 import (
-	"github.com/go-git/go-git/v5"
+	"log"
+	"os"
+	"path/filepath"
+
 	gggrpc "github.com/growerlab/go-git-grpc"
 )
 
 func main() {
-	git.Open(nil, nil)
+	gitRoot := filepath.Join(os.Getenv("GOPATH"), "src", "github.com/growerlab/mensa/test/repos")
 
-	gggrpc.NewServer("./", ":9001")
+	log.Println("go-git-grpc running...")
+	log.Println("git root:", gitRoot)
 
-	gggrpc.NewStoreClient(nil, "", "")
+	err := gggrpc.NewServer(gitRoot, ":9001")
+	if err != nil {
+		panic(err)
+	}
 }

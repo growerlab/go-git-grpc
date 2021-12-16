@@ -2,11 +2,13 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -25,6 +27,25 @@ type Context struct {
 	RepoPath string    // repo dir
 
 	Deadline time.Duration // 命令执行时间，单位秒
+}
+
+func (p *Context) String() string {
+	var sb strings.Builder
+	sb.WriteString("git bin: ")
+	sb.WriteString(p.GitBin)
+	sb.WriteString("\n")
+	sb.WriteString("git args: ")
+	sb.WriteString(strings.Join(p.Args, " "))
+	sb.WriteString("\n")
+	sb.WriteString("git repo path: ")
+	sb.WriteString(p.RepoPath)
+	sb.WriteString("\n")
+	sb.WriteString("git env: ")
+	sb.WriteString(strings.Join(p.Env, " "))
+	sb.WriteString("\n")
+	sb.WriteString(fmt.Sprintf("deadline: %v", p.Deadline))
+	sb.WriteString("\n")
+	return sb.String()
 }
 
 func Run(root string, params *Context, fn gitDoneFunc) error {

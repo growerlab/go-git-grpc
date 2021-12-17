@@ -113,12 +113,14 @@ type clientStream interface {
 
 func (d *Door) sendContextPack(pack clientStream, params *git.Context) error {
 	firstReq := &pb.Request{
-		Path:     params.RepoPath,
-		Env:      params.Env,
-		GitBin:   params.GitBin,
-		Args:     params.Args,
-		Deadline: uint64(params.Deadline),
-		Raw:      nil,
+		Path:      params.RepoPath,
+		Env:       params.Env,
+		GitBin:    params.GitBin,
+		Args:      params.Args,
+		Deadline:  uint64(params.Deadline),
+		Raw:       nil,
+		HasInput:  params.In != nil,
+		HasOutput: params.Out != nil,
 	}
 	err := pack.Send(firstReq)
 	return errors.WithStack(err)

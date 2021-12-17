@@ -15,6 +15,8 @@ message Request {
   repeated string Args = 4;
   uint64 Deadline = 5;
   bytes Raw = 6;
+  bool HasInput = 7;
+  bool HasOutput = 8;
 }
 
 message Response {

@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"io"
 	"log"
 	"time"
 
@@ -25,12 +26,22 @@ func (s *ServerCommand) Start() error {
 		return err
 	}
 
+	var in io.Reader
+	var out io.Writer
+
+	if firstReq.HasInput {
+		in = s
+	}
+	if firstReq.HasOutput {
+		out = s
+	}
+
 	s.ctx = &git.Context{
 		Env:      firstReq.Env,
 		GitBin:   firstReq.GitBin,
 		Args:     firstReq.Args,
-		In:       s,
-		Out:      s,
+		In:       in,
+		Out:      out,
 		RepoPath: firstReq.Path,
 		Deadline: time.Duration(firstReq.Deadline),
 	}

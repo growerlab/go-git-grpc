@@ -44,7 +44,6 @@ func (p *Context) String() string {
 	sb.WriteString(strings.Join(p.Env, " "))
 	sb.WriteString("\n")
 	sb.WriteString(fmt.Sprintf("deadline: %v", p.Deadline))
-	sb.WriteString("\n")
 	return sb.String()
 }
 

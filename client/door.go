@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"reflect"
 	"sync"
 
 	"github.com/growerlab/go-git-grpc/pb"
@@ -53,7 +54,7 @@ func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) 
 		defer wg.Done()
 		defer log.Printf("scan is done.\n")
 
-		if in == nil {
+		if in == nil || reflect.ValueOf(in).IsNil() {
 			return
 		}
 		inReader := bufio.NewReader(in)

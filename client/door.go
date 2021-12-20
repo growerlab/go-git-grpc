@@ -3,6 +3,7 @@ package client
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"reflect"
@@ -37,7 +38,6 @@ func (d *Door) RunGit(params *git.Context) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	// defer runGit.CloseSend()
 
 	if err = d.sendContextPack(runGit, params); err != nil {
 		return err
@@ -48,54 +48,77 @@ func (d *Door) RunGit(params *git.Context) error {
 
 func (d *Door) copy(pipe clientStream, in io.Reader, out io.Writer) (err error) {
 	var wg sync.WaitGroup
-
 	wg.Add(1)
 	go func() {
+		var endReason = "normal"
 		defer wg.Done()
-		defer log.Printf("scan is done.\n")
+		defer log.Printf("scan is done, reason '%s'.\n", endReason)
 
 		if in == nil || reflect.ValueOf(in).IsNil() {
 			return
 		}
-		inReader := bufio.NewReader(in)
-		buf := make([]byte, 512)
+
+		var (
+			inReader = bufio.NewReader(in)
+			buf      = make([]byte, 32*1024)
+		)
+
 		for {
-			n, err := inReader.Read(buf)
-			if err != nil {
-				if err == io.EOF {
-					break
+			select {
+			case <-d.ctx.Done():
+				endReason = "ctx done"
+				goto END
+			default:
+				n := 0
+				n, err = inReader.Read(buf)
+				if err != nil {
+					if err != io.EOF {
+						endReason = fmt.Sprintf("read err: %+v", err)
+					}
+					goto END
+				}
+				if n <= 0 {
+					continue
+				}
+				err = pipe.Send(&pb.Request{Raw: buf[:n]})
+				if err != nil {
+					endReason = fmt.Sprintf("send err: %+v", err)
+					goto END
 				}
 			}
-			if n <= 0 {
-				continue
-			}
-			err = pipe.Send(&pb.Request{Raw: buf[:n]})
-			if err != nil {
-				log.Printf("read err: %+v\n", err)
-				break
-			}
 		}
+	END:
 		_ = pipe.CloseSend()
 	}()
 
 	wg.Add(1)
 	go func() {
+		var endReason = "normal"
 		defer wg.Done()
-		defer log.Printf("recv is done.\n")
+		defer log.Printf("recv is done, reason '%s'.\n", endReason)
 
 		for {
-			var resp *pb.Response
-			resp, err = pipe.Recv()
-			if err != nil {
-				log.Printf("receive: %+v\n", err)
-				break
-			}
-			_, err = out.Write(resp.Raw)
-			if err != nil {
-				log.Printf("write: %+v\n", err)
-				break
+			select {
+			case <-d.ctx.Done():
+				endReason = "ctx done"
+				goto END
+			default:
+				var resp *pb.Response
+				resp, err = pipe.Recv()
+				if err != nil {
+					if err != io.EOF {
+						endReason = fmt.Sprintf("recv err: %+v", err)
+					}
+					goto END
+				}
+				_, err = out.Write(resp.Raw)
+				if err != nil {
+					endReason = fmt.Sprintf("write err: %+v", err)
+					goto END
+				}
 			}
 		}
+	END:
 	}()
 
 	wg.Wait()

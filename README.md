@@ -2,12 +2,12 @@
 
 为go-git支持GRPC的能力
 
-- hulk 为 hooks 目录下的钩子程序
 
 #### 目标
 
-- 通过grpc远程调用go-git读取仓库信息
-- 通过grpc远程调用git-receive-pack、git-upload-pack命名完成推拉操作
+- 通过grpc远程调用 go-git 读取仓库信息
+- 通过grpc远程调用 receive-pack、upload-pack 命令完成推拉操作
+- growerlab/hulk 为 hooks 目录下的钩子程序（将提供推拉操作产生的事件、分支保护、文件保护等功能）
 
 #### 测试
 

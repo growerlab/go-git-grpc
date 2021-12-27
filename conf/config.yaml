@@ -1,6 +1,13 @@
 default: &base
   listen: "127.0.0.1:9001"
   git_repo_dir: /Users/moli/go-project/src/github.com/growerlab/mensa/test/repos
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    max_idle: 5
+    max_active: 512
+    idle_timeout: 120
+    namespace: master # 这里的namespace应该与backend的namespace一致
 
 production:
   <<: *base

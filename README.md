@@ -1,18 +1,16 @@
 # go-git-grpc
 
-为go-git支持GRPC的能力
+支持GRPC的go-git
 
-- hulk 为 hooks 目录下的钩子程序
-
-#### 目标
-
-- 通过grpc远程调用go-git读取仓库信息
-- 通过grpc远程调用git-receive-pack、git-upload-pack命名完成推拉操作
+- [x] 通过grpc远程调用 go-git 读取仓库信息
+- [x] 通过grpc远程调用 receive-pack、upload-pack 命令完成推拉操作
+- [x] growerlab/hulk 为 hooks 目录下的钩子程序（将提供推拉操作产生的事件、分支保护、文件保护等功能）
 
 #### 测试
 
-- 初始化 `test/init.sh`
-- 执行 `test/test.go`
+- 执行 `test/init.sh` 初始化测试仓库
+- 执行 `test/test.go` 测试grpc的go-git
+- 执行 `test/test_door` 测试grpc的git推、拉
 
 #### 性能
 

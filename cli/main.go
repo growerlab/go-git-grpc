@@ -11,6 +11,8 @@ import (
 
 const (
 	defaultConfig = "conf/config.yaml"
+
+	hulkPath = "hooks/update"
 )
 
 type Config struct {
@@ -38,6 +40,11 @@ func init() {
 	}
 	if conf, ok = envConfig[env]; !ok {
 		panic("env " + env + " not found")
+	}
+
+	// check git repo hooks
+	if _, err := os.Stat(hulkPath); os.IsNotExist(err) {
+		panic("git repo hooks not found")
 	}
 }
 

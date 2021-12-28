@@ -1,6 +1,6 @@
 module github.com/growerlab/go-git-grpc
 
-go 1.18
+go 1.17
 
 require (
 	github.com/go-git/go-git/v5 v5.2.0
